@@ -1,0 +1,3590 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>台中捷運綠線 動員決策系統</title>
+<style>
+:root {
+  --navy: #1f497d;
+  --blue: #3b6998;
+  --light-bg: #f4f7f6;
+  --gold-bg: #fff2cc;
+  --gold-border: #e67e22;
+  --unmobilized-bg: #f1f5f9;
+  --unmobilized-border: #cbd5e1;
+  --unmobilized-text: #475569;
+  --mobilized-bg: #dcfce7;
+  --mobilized-border: #166534;
+  --mobilized-text: #14532d;
+  --toggle-off: #e9e9ea;
+
+  /* 查詢系統主題色 */
+  --p1-color: #2563eb;
+  --p2-color: #16a34a;
+  --p3-color: #9333ea;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft JhengHei', sans-serif;
+  background-color: var(--light-bg);
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  position: relative;
+  max-width: 1560px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.08);
+}
+
+/* 頁首右上角版本浮水印 */
+.version-watermark {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  font-size: 8pt;
+  color: #94a3b8;
+  font-family: Consolas, Monaco, monospace, sans-serif;
+  user-select: none;
+}
+
+h1 {
+  color: var(--navy);
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 26px;
+  border-bottom: 3px solid var(--blue);
+  padding-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* 區塊容器 */
+.block-container {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.block-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 區塊一：動員車站狀態 (18 欄橫向排列，嚴格 3 行且字級 11pt, 10pt, 9pt) */
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 1400px) {
+  .station-grid {
+    grid-template-columns: repeat(9, 1fr);
+  }
+}
+
+.station-btn {
+  padding: 4px 2px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  min-height: 58px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.station-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* 第 1 行：車站代碼 (11pt) */
+.st-code {
+  font-size: 11pt;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* 第 2 行：車站名稱 (10pt，不換行) */
+.st-name {
+  font-size: 10pt;
+  font-weight: bold;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* 第 3 行：狀態標籤 (9pt) */
+.st-badge {
+  font-size: 9pt;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.85);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.st-unmobilized {
+  background-color: var(--unmobilized-bg);
+  border: 1.5px solid var(--unmobilized-border);
+  color: var(--unmobilized-text);
+}
+
+.st-mobilized {
+  background-color: var(--mobilized-bg) !important;
+  border: 1.5px solid var(--mobilized-border) !important;
+  color: var(--mobilized-text) !important;
+}
+
+.st-best {
+  background-color: var(--gold-bg);
+  border: 1.5px solid var(--gold-border);
+  color: #b45309;
+}
+
+/* 區塊二：動員紀錄 */
+.log-box {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-height: 60px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.log-empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.log-item {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #f1f5f9;
+}
+
+.btn-group-action {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-primary {
+  background-color: #0284c7;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-primary:hover { background-color: #0369a1; }
+
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-success:hover { background-color: #059669; }
+
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-danger:hover { background-color: #dc2626; }
+
+.btn-warning {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 13px;
+  box-shadow: 0 2px 5px rgba(245, 158, 11, 0.25);
+}
+.btn-warning:hover { background-color: #d97706; }
+
+.btn-sm-reset {
+  background-color: #64748b;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-sm-reset:hover { background-color: #475569; }
+
+/* 軌道簡圖容器 */
+.track-schematic-wrapper {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 10px 10px 10px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+  overflow-x: auto;
+}
+
+.schematic-station-node {
+  cursor: default; /* 純監控，無點選互動 */
+}
+
+.mid-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+  padding: 0 4px;
+}
+
+/* 三組查詢面板 (與區塊一、二、軌道簡圖對齊，總寬度 100% 滿版) */
+.panels-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1200px) {
+  .panels-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.query-panel {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#panel-1 { border-top: 4px solid var(--p1-color); }
+#panel-2 { border-top: 4px solid var(--p2-color); }
+#panel-3 { border-top: 4px solid var(--p3-color); }
+
+.panel-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header-title {
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-1-title { color: #1e3a8a; }
+.panel-2-title { color: #14532d; }
+.panel-3-title { color: #581c87; }
+
+.control-subpanel {
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+}
+
+.panel-label {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--navy);
+}
+
+.sd-input-field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font-size: 14px;
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  outline: none;
+  font-weight: bold;
+  background-color: #fff;
+  color: var(--navy);
+}
+
+.sd-input-field:focus {
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(59, 105, 152, 0.2);
+}
+
+/* 下拉式選單樣式 */
+.sd-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background: #1f2328;
+  border: 1px solid #3d444d;
+  border-radius: 8px;
+  z-index: 1000;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  margin-top: 4px;
+}
+
+.sd-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+.sd-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #484f58;
+  border-radius: 3px;
+}
+
+.sd-dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #2d333b;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 0.15s ease;
+}
+
+.sd-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.sd-dropdown-item:hover, .sd-dropdown-item-active {
+  background-color: #2d333b;
+}
+
+.sd-dropdown-item .sd-code-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #f0f6fc;
+}
+
+.sd-dropdown-item .sd-meta-text {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.switch-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 5px 8px;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+}
+
+.switch-label-left, .switch-label-right {
+  font-size: 12px;
+  font-weight: bold;
+  color: #94a3b8;
+}
+
+.switch-label-active {
+  color: var(--navy);
+}
+
+.ios-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.ios-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--toggle-off);
+  transition: .3s;
+  border-radius: 22px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: var(--blue);
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+.chainage-banner {
+  background: #f8fafc;
+  border: 1.5px dashed var(--blue);
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.chainage-value {
+  font-size: 17px;
+  font-weight: bold;
+  color: #d9534f;
+}
+
+/* TOP 3 CARDs */
+.top-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.card {
+  padding: 10px 4px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 140px;
+  box-sizing: border-box;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+.card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+.card-locked {
+  cursor: not-allowed;
+  opacity: 0.92;
+}
+
+.card-no1 { background: var(--gold-bg); border: 2px solid var(--gold-border); }
+.card-no2 { background: #f0f4f8; border: 1.5px solid #cbd5e1; }
+.card-no3 { background: #f8fafc; border: 1.5px solid #cbd5e1; }
+
+.card-rank { 
+  font-size: 10.5pt; 
+  font-weight: bold; 
+  color: #64748b; 
+  margin-bottom: 2px; 
+}
+
+.card-st { 
+  font-size: 18pt; 
+  font-weight: normal; 
+  color: var(--navy); 
+  margin: 2px 0; 
+  line-height: 1.15;
+}
+.card-dist-box {
+  margin: 2px 0;
+  line-height: 1.1;
+}
+.card-dist-num { 
+  font-size: 15pt; 
+  font-weight: 800; 
+  color: #d9534f; 
+}
+.card-dist-unit { 
+  font-size: 11pt; 
+  font-weight: normal; 
+  color: #d9534f; 
+}
+.card-detail { 
+  font-size: 10pt; 
+  color: #475569; 
+  margin: 2px 0 5px 0; 
+}
+
+/* 底端狀態膠囊 (10pt) */
+.card-status {
+  font-size: 9.5pt;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 18px;
+  display: inline-block;
+  user-select: none;
+  line-height: 1.2;
+}
+.status-standby {
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+.status-south {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+.status-north {
+  background-color: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+.status-platform {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+.status-mobilized {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1.5px solid #166534;
+}
+.status-completed {
+  background-color: #e2e8f0;
+  color: #475569;
+  border: 1px solid #94a3b8;
+}
+
+/* 詳細數據表格 (適當縮小欄間空白，維持1行顯示2字/4字原則，整體寬度對齊上開區塊) */
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 12px; 
+  margin-top: 4px; 
+  table-layout: auto; 
+}
+
+th, td { 
+  padding: 5px 2px; 
+  text-align: center; 
+  border-bottom: 1px solid #e2e8f0; 
+  vertical-align: middle; 
+}
+
+th { 
+  background-color: var(--blue); 
+  color: white; 
+  font-weight: bold; 
+  white-space: nowrap; 
+}
+
+tr:nth-child(even) { background-color: #f8fafc; }
+.highlight-row { background-color: #fef08a !important; font-weight: bold; }
+
+/* 1. 排序欄寬：依表頭顯示 2 個中文字為參考寬度 (~38px) */
+.col-rank {
+  width: 38px;
+  min-width: 36px;
+  white-space: nowrap;
+}
+
+/* 車站欄寬 (~44px) */
+.col-station {
+  min-width: 44px;
+  white-space: nowrap;
+}
+
+/* 2. 待命位置欄寬：以 1 行顯示 4 個中文字為參考寬度 (~68px)，月台軌區就近待命自動/指定換行為 2 行 */
+.col-standby {
+  width: 70px;
+  min-width: 66px;
+}
+
+/* 月台中心欄寬 */
+.col-center {
+  min-width: 58px;
+  white-space: nowrap;
+}
+
+/* 3. 步行時間欄寬：依表頭顯示 4 個中文字為參考寬度 (~64px) */
+.col-time {
+  width: 66px;
+  min-width: 62px;
+  white-space: nowrap;
+}
+
+/* 直線距離欄寬 */
+.col-dist {
+  min-width: 50px;
+  white-space: nowrap;
+}
+
+/* 趨勢欄寬 */
+.col-slope {
+  min-width: 52px;
+}
+
+.badge-standby {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.2;
+  text-align: center;
+  box-sizing: border-box;
+  max-width: 66px;
+}
+.badge-platform { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.badge-south { background-color: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.badge-north { background-color: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+
+/* ==========================================
+   RWD 響應式佈局 (Tablet & Mobile 精確適應)
+   ========================================== */
+
+/* 1. 中型螢幕與平板 (768px ~ 1200px) */
+@media (max-width: 1200px) {
+  body {
+    padding: 15px;
+  }
+  .container {
+    padding: 20px;
+    max-width: 100%;
+  }
+  .station-grid {
+    grid-template-columns: repeat(9, 1fr);
+    gap: 6px;
+  }
+  .panels-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .block-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+/* 2. 智慧型手機與手持裝置 (< 768px, e.g. iPhone / Android) */
+@media (max-width: 768px) {
+  body {
+    padding: 8px 6px;
+  }
+  .container {
+    padding: 12px 10px;
+    border-radius: 12px;
+  }
+  h1 {
+    font-size: 20px;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+  }
+  .block-container {
+    padding: 12px 10px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+  }
+  .block-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .block-title {
+    font-size: 15px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  /* 區塊一：手機端改為 6 欄 (3 列呈現 18 站)，舒適防誤觸 */
+  .station-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+  }
+  .station-btn {
+    min-height: 54px;
+    padding: 3px 1px;
+  }
+  .st-code {
+    font-size: 10pt;
+  }
+  .st-name {
+    font-size: 9pt;
+  }
+  .st-badge {
+    font-size: 8pt;
+    padding: 1px 2px;
+  }
+
+  /* 區塊二：動作按鈕群全寬垂直堆疊 */
+  .btn-group-action {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .btn-primary, .btn-success, .btn-danger {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 13.5px;
+  }
+
+  /* 軌道簡圖容器：支援滑順橫向捲動，確保高清放大品質 */
+  .track-schematic-wrapper {
+    padding: 10px 4px;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+    overflow-x: auto;
+  }
+  .track-schematic-wrapper svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* 一鍵重置 SD 按鈕全寬 */
+  .mid-toolbar {
+    margin-bottom: 14px;
+  }
+  .btn-warning {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  /* 三組查詢面板 */
+  .query-panel {
+    padding: 10px;
+    gap: 10px;
+  }
+  .control-subpanel {
+    padding: 10px;
+    gap: 8px;
+  }
+  .switch-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  
+  /* TOP 3 CARDS 手機端精緻微調 */
+  .top-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+  .card {
+    padding: 8px 2px;
+    min-height: 130px;
+  }
+  .card-rank { font-size: 9pt; }
+  .card-st { font-size: 14pt; }
+  .card-dist-num { font-size: 13pt; }
+  .card-dist-unit { font-size: 9.5pt; }
+  .card-detail { font-size: 8.5pt; margin: 2px 0 4px 0; }
+  .card-status { font-size: 8.5pt; padding: 2px 5px; }
+
+  /* 查詢結果表格容器：寬度適應與維護 */
+  .query-panel table {
+    font-size: 11.5px;
+  }
+}
+
+/* 3. 小螢幕手機 (< 420px) TOP 3 卡片與選單適應 */
+@media (max-width: 420px) {
+  .switch-row {
+    grid-template-columns: 1fr;
+  }
+  .card-rank { font-size: 8.5pt; }
+  .card-st { font-size: 12.5pt; }
+  .card-dist-num { font-size: 12pt; }
+  .card-dist-unit { font-size: 9pt; }
+  .card-detail { font-size: 8pt; }
+  .card-status { font-size: 8pt; padding: 2px 4px; }
+}
+
+
+/* === v15 擴充：Modal 彈窗與動態選單樣式 === */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.65);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 480px;
+  padding: 22px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalSlideUp 0.2s ease-out;
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--blue);
+  padding-bottom: 10px;
+}
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close-btn:hover { color: #ef4444; }
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-label {
+  font-size: 13.5px;
+  font-weight: bold;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.direction-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.dir-btn {
+  padding: 10px 8px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: bold;
+  font-size: 13.5px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.dir-btn:hover:not(.dir-btn-disabled) {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+}
+.dir-btn-active {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  color: #1e40af !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
+}
+.dir-btn-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+.form-control {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+  background: #fff;
+  color: #0f172a;
+  font-weight: bold;
+}
+.form-control:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 105, 152, 0.15);
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+.btn-modal-cancel {
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-modal-cancel:hover { background: #cbd5e1; }
+.btn-modal-confirm {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+.btn-modal-confirm:hover { background: #059669; }
+
+/* 紀錄區塊標籤與更新按鈕樣式 */
+.log-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-right: 6px;
+}
+.log-tag-mob { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.log-tag-unmob { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.btn-sm-update {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-sm-update:hover { background: #1d4ed8; }
+
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- 頁首右上角版本日期浮水印 -->
+  <div class="version-watermark">v25.0 | 2026.10.22</div>
+  <h1><span>🚇</span> 台中捷運綠線 動員決策系統</h1>
+
+  <!-- 區塊一：動員車站狀態 -->
+  <div class="block-container">
+    <div class="block-header">
+      <div class="block-title">
+        <span>🚉 車站動員狀態</span>
+        <span style="font-size: 12px; font-weight: normal; color: #64748b; margin-left: 8px;">(點選按鈕可切換動員狀態；金黃框代表即時查詢最佳建議車站)</span>
+      </div>
+      <div class="action-btn-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" onclick="mobilizeAllStations()" style="background-color: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">⚡ 全線車站動員</button>
+        <button type="button" onclick="demobilizeAllStations()" style="background-color: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">🔄 全線車站解除動員</button>
+      </div>
+    </div>
+    <div class="station-grid" id="stationGrid"></div>
+  </div>
+
+  <!-- 區塊二：動員紀錄 -->
+  <div class="block-container">
+    <div class="block-header">
+      <div class="block-title">
+        <span>📋 動員紀錄 (G0 至 G17 排序)</span>
+      </div>
+      <div class="btn-group-action">
+        <button class="btn-primary" onclick="downloadMobilizationLogsTxt()">📥 下載動員紀錄 (.txt)</button>
+        <button class="btn-success" onclick="downloadMobilizationLogsXlsx()">📊 下載動員紀錄 (.xlsx)</button>
+        <button class="btn-danger" onclick="resetAllMobilization()">🔄 重置全部狀態與紀錄</button>
+      </div>
+    </div>
+    <div class="log-box" id="logBox">
+      <div class="log-empty">尚無動員紀錄</div>
+    </div>
+  </div>
+
+  <!-- 軌道簡圖區塊 -->
+  <div class="block-container" style="margin-bottom: 12px;">
+    <div class="block-header" style="margin-bottom: 8px;">
+      <div class="block-title">
+        <span>🗺️ 車站簡圖</span>
+        <span style="font-size: 12px; font-weight: normal; color: #64748b; margin-left: 8px;">
+          (依車站動員狀態即時顯色；📍₁/📍₂/📍₃ 依比例標示事件點)
+        </span>
+      </div>
+    </div>
+    <div class="track-schematic-wrapper" id="trackSchematicWrapper"></div>
+  </div>
+
+  <!-- 一鍵重置所有查詢 SD 按鈕，右側對齊 -->
+  <div class="mid-toolbar">
+    <button class="btn-warning" onclick="resetAllSdInputs()">🧹 一鍵重置所有查詢 SD</button>
+  </div>
+
+  <!-- 三組並行查詢系統 -->
+  <div class="panels-grid">
+    <!-- Panel 1 -->
+    <div class="query-panel" id="panel-1">
+      <div class="panel-header-row">
+        <div class="panel-header-title panel-1-title">
+          <span style="color: var(--p1-color); font-weight: 800;">📍₁</span> 查詢系統 (一)
+        </div>
+        <button class="btn-sm-reset" onclick="resetPanelSd(1)">🧹 重置 SD</button>
+      </div>
+      <div class="control-subpanel">
+        <div class="panel-group">
+          <span class="panel-label">A. 輸入行車端 SD 代碼:</span>
+          <input type="text" id="sdInput-1" class="sd-input-field" placeholder="請輸入 SD (如: 902, 1524, X101)" autocomplete="off" inputmode="url" autocapitalize="characters" spellcheck="false">
+          <div id="sdDropdown-1" class="sd-dropdown-menu" style="display: none;"></div>
+        </div>
+        <div class="switch-row">
+          <div class="panel-group">
+            <span class="panel-label">B. 停駐位置:</span>
+            <div class="switch-container">
+              <span id="labelCrossLeft-1" class="switch-label-left switch-label-active">單一 SD</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="toggleCross-1">
+                <span class="slider"></span>
+              </label>
+              <span id="labelCrossRight-1" class="switch-label-right">橫跨 SD</span>
+            </div>
+          </div>
+          <div class="panel-group">
+            <span class="panel-label">C. 行進模式:</span>
+            <div class="switch-container">
+              <span id="labelRevLeft-1" class="switch-label-left switch-label-active">正向</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="toggleRev-1">
+                <span class="slider"></span>
+              </label>
+              <span id="labelRevRight-1" class="switch-label-right">逆向</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chainage-banner">
+        <div><strong>📍 估算里程：</strong></div>
+        <div class="chainage-value" id="estimatedKm-1">－ m</div>
+      </div>
+      <div class="top-cards" id="topCards-1"></div>
+      <table>
+        <thead>
+          <tr>
+            <th class="col-rank">排序</th>
+            <th class="col-station">車站</th>
+            <th class="col-standby">待命位置</th>
+            <th class="col-center">月台中心(m)</th>
+            <th class="col-time">步行時間</th>
+            <th class="col-dist">直線(m)</th>
+            <th class="col-slope">趨勢</th>
+          </tr>
+        </thead>
+        <tbody id="stBody-1"></tbody>
+      </table>
+    </div>
+
+    <!-- Panel 2 -->
+    <div class="query-panel" id="panel-2">
+      <div class="panel-header-row">
+        <div class="panel-header-title panel-2-title">
+          <span style="color: var(--p2-color); font-weight: 800;">📍₂</span> 查詢系統 (二)
+        </div>
+        <button class="btn-sm-reset" onclick="resetPanelSd(2)">🧹 重置 SD</button>
+      </div>
+      <div class="control-subpanel">
+        <div class="panel-group">
+          <span class="panel-label">A. 輸入行車端 SD 代碼:</span>
+          <input type="text" id="sdInput-2" class="sd-input-field" placeholder="請輸入 SD (如: 902, 1524, X101)" autocomplete="off" inputmode="url" autocapitalize="characters" spellcheck="false">
+          <div id="sdDropdown-2" class="sd-dropdown-menu" style="display: none;"></div>
+        </div>
+        <div class="switch-row">
+          <div class="panel-group">
+            <span class="panel-label">B. 停駐位置:</span>
+            <div class="switch-container">
+              <span id="labelCrossLeft-2" class="switch-label-left switch-label-active">單一 SD</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="toggleCross-2">
+                <span class="slider"></span>
+              </label>
+              <span id="labelCrossRight-2" class="switch-label-right">橫跨 SD</span>
+            </div>
+          </div>
+          <div class="panel-group">
+            <span class="panel-label">C. 行進模式:</span>
+            <div class="switch-container">
+              <span id="labelRevLeft-2" class="switch-label-left switch-label-active">正向</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="toggleRev-2">
+                <span class="slider"></span>
+              </label>
+              <span id="labelRevRight-2" class="switch-label-right">逆向</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chainage-banner">
+        <div><strong>📍 估算里程：</strong></div>
+        <div class="chainage-value" id="estimatedKm-2">－ m</div>
+      </div>
+      <div class="top-cards" id="topCards-2"></div>
+      <table>
+        <thead>
+          <tr>
+            <th class="col-rank">排序</th>
+            <th class="col-station">車站</th>
+            <th class="col-standby">待命位置</th>
+            <th class="col-center">月台中心(m)</th>
+            <th class="col-time">步行時間</th>
+            <th class="col-dist">直線(m)</th>
+            <th class="col-slope">趨勢</th>
+          </tr>
+        </thead>
+        <tbody id="stBody-2"></tbody>
+      </table>
+    </div>
+
+    <!-- Panel 3 -->
+    <div class="query-panel" id="panel-3">
+      <div class="panel-header-row">
+        <div class="panel-header-title panel-3-title">
+          <span style="color: var(--p3-color); font-weight: 800;">📍₃</span> 查詢系統 (三)
+        </div>
+        <button class="btn-sm-reset" onclick="resetPanelSd(3)">🧹 重置 SD</button>
+      </div>
+      <div class="control-subpanel">
+        <div class="panel-group">
+          <span class="panel-label">A. 輸入行車端 SD 代碼:</span>
+          <input type="text" id="sdInput-3" class="sd-input-field" placeholder="請輸入 SD (如: 902, 1524, X101)" autocomplete="off" inputmode="url" autocapitalize="characters" spellcheck="false">
+          <div id="sdDropdown-3" class="sd-dropdown-menu" style="display: none;"></div>
+        </div>
+        <div class="switch-row">
+          <div class="panel-group">
+            <span class="panel-label">B. 停駐位置:</span>
+            <div class="switch-container">
+              <span id="labelCrossLeft-3" class="switch-label-left switch-label-active">單一 SD</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="toggleCross-3">
+                <span class="slider"></span>
+              </label>
+              <span id="labelCrossRight-3" class="switch-label-right">橫跨 SD</span>
+            </div>
+          </div>
+          <div class="panel-group">
+            <span class="panel-label">C. 行進模式:</span>
+            <div class="switch-container">
+              <span id="labelRevLeft-3" class="switch-label-left switch-label-active">正向</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="toggleRev-3">
+                <span class="slider"></span>
+              </label>
+              <span id="labelRevRight-3" class="switch-label-right">逆向</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chainage-banner">
+        <div><strong>📍 估算里程：</strong></div>
+        <div class="chainage-value" id="estimatedKm-3">－ m</div>
+      </div>
+      <div class="top-cards" id="topCards-3"></div>
+      <table>
+        <thead>
+          <tr>
+            <th class="col-rank">排序</th>
+            <th class="col-station">車站</th>
+            <th class="col-standby">待命位置</th>
+            <th class="col-center">月台中心(m)</th>
+            <th class="col-time">步行時間</th>
+            <th class="col-dist">直線(m)</th>
+            <th class="col-slope">趨勢</th>
+          </tr>
+        </thead>
+        <tbody id="stBody-3"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// 1. 全域面板 ID 陣列
+const PANEL_IDS = [1, 2, 3];
+let lastComputedPanelResults = { 1: null, 2: null, 3: null };
+
+// 2. 完整 SD 數據庫 (DN在上，UP在下)
+const SD_DATABASE = [
+  {"sd": "17ST101", "direction": "DN", "lower_bound": 91004.28, "upper_bound": 91057.85, "middle": 91031.07},
+  {"sd": "1702", "direction": "DN", "lower_bound": 90930.73, "upper_bound": 90993.12, "middle": 90961.93},
+  {"sd": "1704", "direction": "DN", "lower_bound": 90993.12, "upper_bound": 91055.86, "middle": 91024.49},
+  {"sd": "1706", "direction": "DN", "lower_bound": 91055.86, "upper_bound": 91165.49, "middle": 91110.68},
+  {"sd": "1708", "direction": "DN", "lower_bound": 91165.49, "upper_bound": 91317.46, "middle": 91241.48},
+  {"sd": "1710", "direction": "DN", "lower_bound": 91317.46, "upper_bound": 91362.66, "middle": 91340.06},
+  {"sd": "1712", "direction": "DN", "lower_bound": 91362.66, "upper_bound": 91431.61, "middle": 91397.14},
+  {"sd": "1714", "direction": "DN", "lower_bound": 91431.61, "upper_bound": 91763.58, "middle": 91597.6},
+  {"sd": "1716", "direction": "DN", "lower_bound": 91763.58, "upper_bound": 92095.65, "middle": 91929.62},
+  {"sd": "1718", "direction": "DN", "lower_bound": 92095.65, "upper_bound": 92429.33, "middle": 92262.49},
+  {"sd": "1520", "direction": "DN", "lower_bound": 92429.33, "upper_bound": 92497.29, "middle": 92463.31},
+  {"sd": "1522", "direction": "DN", "lower_bound": 92497.29, "upper_bound": 92818.72, "middle": 92658.01},
+  {"sd": "1524", "direction": "DN", "lower_bound": 92818.72, "upper_bound": 93136.68, "middle": 92977.7},
+  {"sd": "1526", "direction": "DN", "lower_bound": 93136.68, "upper_bound": 93457.89, "middle": 93297.29},
+  {"sd": "1528", "direction": "DN", "lower_bound": 93457.89, "upper_bound": 93525.86, "middle": 93491.88},
+  {"sd": "1530", "direction": "DN", "lower_bound": 93525.86, "upper_bound": 93836.65, "middle": 93681.26},
+  {"sd": "1532", "direction": "DN", "lower_bound": 93836.65, "upper_bound": 94147.98, "middle": 93992.32},
+  {"sd": "1534", "direction": "DN", "lower_bound": 94147.98, "upper_bound": 94215.89, "middle": 94181.94},
+  {"sd": "1302", "direction": "DN", "lower_bound": 94215.89, "upper_bound": 94541.7, "middle": 94378.8},
+  {"sd": "1304", "direction": "DN", "lower_bound": 94541.7, "upper_bound": 94866.28, "middle": 94703.99},
+  {"sd": "1306", "direction": "DN", "lower_bound": 94866.28, "upper_bound": 94959.77, "middle": 94913.03},
+  {"sd": "1308", "direction": "DN", "lower_bound": 94959.77, "upper_bound": 95067.44, "middle": 95013.61},
+  {"sd": "1310", "direction": "DN", "lower_bound": 95067.44, "upper_bound": 95137.27, "middle": 95102.36},
+  {"sd": "1312", "direction": "DN", "lower_bound": 95137.27, "upper_bound": 95444.57, "middle": 95290.92},
+  {"sd": "1314", "direction": "DN", "lower_bound": 95444.57, "upper_bound": 95750.51, "middle": 95597.54},
+  {"sd": "1316", "direction": "DN", "lower_bound": 95750.51, "upper_bound": 96056.5, "middle": 95903.51},
+  {"sd": "1318", "direction": "DN", "lower_bound": 96056.5, "upper_bound": 96362.5, "middle": 96209.5},
+  {"sd": "1320", "direction": "DN", "lower_bound": 96362.5, "upper_bound": 96670.96, "middle": 96516.73},
+  {"sd": "1122", "direction": "DN", "lower_bound": 96670.96, "upper_bound": 96738.92, "middle": 96704.94},
+  {"sd": "1124", "direction": "DN", "lower_bound": 96738.92, "upper_bound": 97009.45, "middle": 96874.19},
+  {"sd": "1126", "direction": "DN", "lower_bound": 97009.45, "upper_bound": 97277.58, "middle": 97143.52},
+  {"sd": "1128", "direction": "DN", "lower_bound": 97277.58, "upper_bound": 97548.74, "middle": 97413.16},
+  {"sd": "1130", "direction": "DN", "lower_bound": 97548.74, "upper_bound": 97616.72, "middle": 97582.73},
+  {"sd": "1132", "direction": "DN", "lower_bound": 97616.72, "upper_bound": 97853.55, "middle": 97735.14},
+  {"sd": "1134", "direction": "DN", "lower_bound": 97853.55, "upper_bound": 98089.95, "middle": 97971.75},
+  {"sd": "902", "direction": "DN", "lower_bound": 98089.95, "upper_bound": 98157.85, "middle": 98123.9},
+  {"sd": "904", "direction": "DN", "lower_bound": 98157.85, "upper_bound": 98421.48, "middle": 98289.67},
+  {"sd": "906", "direction": "DN", "lower_bound": 98421.48, "upper_bound": 98682.15, "middle": 98551.82},
+  {"sd": "908", "direction": "DN", "lower_bound": 98682.15, "upper_bound": 98945.48, "middle": 98813.82},
+  {"sd": "910", "direction": "DN", "lower_bound": 98945.48, "upper_bound": 99013.45, "middle": 98979.47},
+  {"sd": "912", "direction": "DN", "lower_bound": 99013.45, "upper_bound": 99318.58, "middle": 99166.02},
+  {"sd": "914", "direction": "DN", "lower_bound": 99318.58, "upper_bound": 99608.64, "middle": 99463.61},
+  {"sd": "916", "direction": "DN", "lower_bound": 99608.64, "upper_bound": 99739.8, "middle": 99674.22},
+  {"sd": "918", "direction": "DN", "lower_bound": 99739.8, "upper_bound": 99869.34, "middle": 99804.57},
+  {"sd": "920", "direction": "DN", "lower_bound": 99869.34, "upper_bound": 99965.48, "middle": 99917.41},
+  {"sd": "922", "direction": "DN", "lower_bound": 99965.48, "upper_bound": 100033.74, "middle": 99999.61},
+  {"sd": "8A02", "direction": "DN", "lower_bound": 100033.74, "upper_bound": 100182.71, "middle": 100108.23},
+  {"sd": "8A26", "direction": "DN", "lower_bound": 100182.71, "upper_bound": 100243.37, "middle": 100213.04},
+  {"sd": "8A04", "direction": "DN", "lower_bound": 100243.37, "upper_bound": 100339.22, "middle": 100291.3},
+  {"sd": "8A06", "direction": "DN", "lower_bound": 100339.22, "upper_bound": 100546.58, "middle": 100442.9},
+  {"sd": "8A08", "direction": "DN", "lower_bound": 100546.58, "upper_bound": 100770.18, "middle": 100658.38},
+  {"sd": "8A10", "direction": "DN", "lower_bound": 100770.18, "upper_bound": 100838.17, "middle": 100804.18},
+  {"sd": "8A12", "direction": "DN", "lower_bound": 100838.17, "upper_bound": 101088.66, "middle": 100963.42},
+  {"sd": "8A14", "direction": "DN", "lower_bound": 101088.66, "upper_bound": 101336.64, "middle": 101212.65},
+  {"sd": "8A16", "direction": "DN", "lower_bound": 101336.64, "upper_bound": 101586.15, "middle": 101461.4},
+  {"sd": "8A18", "direction": "DN", "lower_bound": 101586.15, "upper_bound": 101654.05, "middle": 101620.1},
+  {"sd": "8A20", "direction": "DN", "lower_bound": 101654.05, "upper_bound": 101986.54, "middle": 101820.3},
+  {"sd": "8A22", "direction": "DN", "lower_bound": 101986.54, "upper_bound": 102316.72, "middle": 102151.63},
+  {"sd": "8A24", "direction": "DN", "lower_bound": 102316.72, "upper_bound": 102649.29, "middle": 102483.01},
+  {"sd": "602", "direction": "DN", "lower_bound": 102649.29, "upper_bound": 102717.24, "middle": 102683.27},
+  {"sd": "604", "direction": "DN", "lower_bound": 102717.24, "upper_bound": 102998.79, "middle": 102858.02},
+  {"sd": "606", "direction": "DN", "lower_bound": 102998.79, "upper_bound": 103279.77, "middle": 103139.28},
+  {"sd": "608", "direction": "DN", "lower_bound": 103279.77, "upper_bound": 103559.75, "middle": 103419.76},
+  {"sd": "610", "direction": "DN", "lower_bound": 103559.75, "upper_bound": 103838.72, "middle": 103699.24},
+  {"sd": "612", "direction": "DN", "lower_bound": 103838.72, "upper_bound": 104120.9, "middle": 103979.81},
+  {"sd": "614", "direction": "DN", "lower_bound": 104120.9, "upper_bound": 104188.85, "middle": 104154.88},
+  {"sd": "516", "direction": "DN", "lower_bound": 104188.85, "upper_bound": 104468.59, "middle": 104328.72},
+  {"sd": "518", "direction": "DN", "lower_bound": 104468.59, "upper_bound": 104737.42, "middle": 104603.01},
+  {"sd": "520", "direction": "DN", "lower_bound": 104737.42, "upper_bound": 104789.74, "middle": 104763.58},
+  {"sd": "522", "direction": "DN", "lower_bound": 104789.74, "upper_bound": 104982.44, "middle": 104886.09},
+  {"sd": "524", "direction": "DN", "lower_bound": 104982.44, "upper_bound": 105051.4, "middle": 105016.92},
+  {"sd": "526", "direction": "DN", "lower_bound": 105051.4, "upper_bound": 105368.63, "middle": 105210.02},
+  {"sd": "528", "direction": "DN", "lower_bound": 105368.63, "upper_bound": 105680.85, "middle": 105524.74},
+  {"sd": "530", "direction": "DN", "lower_bound": 105680.85, "upper_bound": 105997.47, "middle": 105839.16},
+  {"sd": "532", "direction": "DN", "lower_bound": 105997.47, "upper_bound": 106311.44, "middle": 106154.46},
+  {"sd": "534", "direction": "DN", "lower_bound": 106311.44, "upper_bound": 106628.66, "middle": 106470.05},
+  {"sd": "002", "direction": "DN", "lower_bound": 106628.66, "upper_bound": 106696.64, "middle": 106662.65},
+  {"sd": "004", "direction": "DN", "lower_bound": 106696.64, "upper_bound": 107002.36, "middle": 106849.5},
+  {"sd": "006", "direction": "DN", "lower_bound": 107002.36, "upper_bound": 107307.01, "middle": 107154.69},
+  {"sd": "008", "direction": "DN", "lower_bound": 107307.01, "upper_bound": 107376.08, "middle": 107341.55},
+  {"sd": "010", "direction": "DN", "lower_bound": 107376.08, "upper_bound": 107483.58, "middle": 107429.83},
+  {"sd": "012", "direction": "DN", "lower_bound": 107483.58, "upper_bound": 107578.98, "middle": 107531.28},
+  {"sd": "014", "direction": "DN", "lower_bound": 107578.98, "upper_bound": 107853.13, "middle": 107716.06},
+  {"sd": "016", "direction": "DN", "lower_bound": 107853.13, "upper_bound": 108078.75, "middle": 107965.94},
+  {"sd": "020", "direction": "DN", "lower_bound": 108078.75, "upper_bound": 108293.09, "middle": 108185.92},
+  {"sd": "024", "direction": "DN", "lower_bound": 108293.09, "upper_bound": 108361.75, "middle": 108327.42},
+  {"sd": "026", "direction": "DN", "lower_bound": 108361.75, "upper_bound": 108452.28, "middle": 108407.02},
+  {"sd": "028", "direction": "DN", "lower_bound": 108452.28, "upper_bound": 108508.78, "middle": 108480.53},
+  {"sd": "030", "direction": "DN", "lower_bound": 108508.78, "upper_bound": 108594.95, "middle": 108551.87},
+  {"sd": "032", "direction": "DN", "lower_bound": 108594.95, "upper_bound": 108661.78, "middle": 108628.37},
+  {"sd": "1701", "direction": "UP", "lower_bound": 90936.21, "upper_bound": 90997.43, "middle": 90966.82},
+  {"sd": "1703", "direction": "UP", "lower_bound": 90997.43, "upper_bound": 91059.74, "middle": 91028.59},
+  {"sd": "1705", "direction": "UP", "lower_bound": 91059.74, "upper_bound": 91111.54, "middle": 91085.64},
+  {"sd": "1707", "direction": "UP", "lower_bound": 91111.54, "upper_bound": 91162.85, "middle": 91137.2},
+  {"sd": "1709", "direction": "UP", "lower_bound": 91162.85, "upper_bound": 91315.49, "middle": 91239.17},
+  {"sd": "1735", "direction": "UP", "lower_bound": 91315.49, "upper_bound": 91357.82, "middle": 91336.66},
+  {"sd": "1711", "direction": "UP", "lower_bound": 91357.82, "upper_bound": 91426.8, "middle": 91392.31},
+  {"sd": "1713", "direction": "UP", "lower_bound": 91426.8, "upper_bound": 91761.74, "middle": 91594.27},
+  {"sd": "1715", "direction": "UP", "lower_bound": 91761.74, "upper_bound": 92092.94, "middle": 91927.34},
+  {"sd": "1717", "direction": "UP", "lower_bound": 92092.94, "upper_bound": 92424.57, "middle": 92258.76},
+  {"sd": "1519", "direction": "UP", "lower_bound": 92424.57, "upper_bound": 92492.52, "middle": 92458.55},
+  {"sd": "1521", "direction": "UP", "lower_bound": 92492.52, "upper_bound": 92814.84, "middle": 92653.68},
+  {"sd": "1523", "direction": "UP", "lower_bound": 92814.84, "upper_bound": 93134.92, "middle": 92974.88},
+  {"sd": "1525", "direction": "UP", "lower_bound": 93134.92, "upper_bound": 93456.59, "middle": 93295.76},
+  {"sd": "1527", "direction": "UP", "lower_bound": 93456.59, "upper_bound": 93524.57, "middle": 93490.58},
+  {"sd": "1529", "direction": "UP", "lower_bound": 93524.57, "upper_bound": 93835.99, "middle": 93680.28},
+  {"sd": "1531", "direction": "UP", "lower_bound": 93835.99, "upper_bound": 94146.69, "middle": 93991.34},
+  {"sd": "1533", "direction": "UP", "lower_bound": 94146.69, "upper_bound": 94214.65, "middle": 94180.67},
+  {"sd": "1301", "direction": "UP", "lower_bound": 94214.65, "upper_bound": 94502.98, "middle": 94358.82},
+  {"sd": "1337", "direction": "UP", "lower_bound": 94502.98, "upper_bound": 94794.74, "middle": 94648.86},
+  {"sd": "1303", "direction": "UP", "lower_bound": 94794.74, "upper_bound": 94846.07, "middle": 94820.41},
+  {"sd": "1305", "direction": "UP", "lower_bound": 94846.07, "upper_bound": 94959.1, "middle": 94902.59},
+  {"sd": "1307", "direction": "UP", "lower_bound": 94959.1, "upper_bound": 95065.17, "middle": 95012.14},
+  {"sd": "1309", "direction": "UP", "lower_bound": 95065.17, "upper_bound": 95136.09, "middle": 95100.63},
+  {"sd": "1311", "direction": "UP", "lower_bound": 95136.09, "upper_bound": 95444.93, "middle": 95290.51},
+  {"sd": "1313", "direction": "UP", "lower_bound": 95444.93, "upper_bound": 95751.84, "middle": 95598.39},
+  {"sd": "1315", "direction": "UP", "lower_bound": 95751.84, "upper_bound": 96058.93, "middle": 95905.39},
+  {"sd": "1317", "direction": "UP", "lower_bound": 96058.93, "upper_bound": 96365.94, "middle": 96212.44},
+  {"sd": "1319", "direction": "UP", "lower_bound": 96365.94, "upper_bound": 96674.88, "middle": 96520.41},
+  {"sd": "1121", "direction": "UP", "lower_bound": 96674.88, "upper_bound": 96742.82, "middle": 96708.85},
+  {"sd": "1123", "direction": "UP", "lower_bound": 96742.82, "upper_bound": 97040.85, "middle": 96891.84},
+  {"sd": "1125", "direction": "UP", "lower_bound": 97040.85, "upper_bound": 97281.87, "middle": 97161.36},
+  {"sd": "1127", "direction": "UP", "lower_bound": 97281.87, "upper_bound": 97552.71, "middle": 97417.29},
+  {"sd": "1129", "direction": "UP", "lower_bound": 97552.71, "upper_bound": 97620.65, "middle": 97586.68},
+  {"sd": "1131", "direction": "UP", "lower_bound": 97620.65, "upper_bound": 97857.86, "middle": 97739.26},
+  {"sd": "1133", "direction": "UP", "lower_bound": 97857.86, "upper_bound": 98093.82, "middle": 97975.84},
+  {"sd": "901", "direction": "UP", "lower_bound": 98093.82, "upper_bound": 98161.82, "middle": 98127.82},
+  {"sd": "903", "direction": "UP", "lower_bound": 98161.82, "upper_bound": 98424.81, "middle": 98293.32},
+  {"sd": "905", "direction": "UP", "lower_bound": 98424.81, "upper_bound": 98685.88, "middle": 98555.35},
+  {"sd": "907", "direction": "UP", "lower_bound": 98685.88, "upper_bound": 98949.23, "middle": 98817.56},
+  {"sd": "909", "direction": "UP", "lower_bound": 98949.23, "upper_bound": 99017.22, "middle": 98983.23},
+  {"sd": "911", "direction": "UP", "lower_bound": 99017.22, "upper_bound": 99319.79, "middle": 99168.51},
+  {"sd": "913", "direction": "UP", "lower_bound": 99319.79, "upper_bound": 99609.4, "middle": 99464.6},
+  {"sd": "915", "direction": "UP", "lower_bound": 99609.4, "upper_bound": 99738.88, "middle": 99674.14},
+  {"sd": "917", "direction": "UP", "lower_bound": 99738.88, "upper_bound": 99868.78, "middle": 99803.83},
+  {"sd": "919", "direction": "UP", "lower_bound": 99868.78, "upper_bound": 99965.63, "middle": 99917.21},
+  {"sd": "921", "direction": "UP", "lower_bound": 99965.63, "upper_bound": 100033.61, "middle": 99999.62},
+  {"sd": "8A01", "direction": "UP", "lower_bound": 100033.61, "upper_bound": 100182.18, "middle": 100107.9},
+  {"sd": "8A03", "direction": "UP", "lower_bound": 100182.18, "upper_bound": 100233.51, "middle": 100207.85},
+  {"sd": "8A05", "direction": "UP", "lower_bound": 100233.51, "upper_bound": 100319.46, "middle": 100276.49},
+  {"sd": "8A07", "direction": "UP", "lower_bound": 100319.46, "upper_bound": 100540.86, "middle": 100430.16},
+  {"sd": "8A09", "direction": "UP", "lower_bound": 100540.86, "upper_bound": 100768.49, "middle": 100654.68},
+  {"sd": "8A11", "direction": "UP", "lower_bound": 100768.49, "upper_bound": 100836.44, "middle": 100802.47},
+  {"sd": "8A13", "direction": "UP", "lower_bound": 100836.44, "upper_bound": 101085.66, "middle": 100961.05},
+  {"sd": "8A15", "direction": "UP", "lower_bound": 101085.66, "upper_bound": 101332.83, "middle": 101209.25},
+  {"sd": "8A17", "direction": "UP", "lower_bound": 101332.83, "upper_bound": 101582.5, "middle": 101457.67},
+  {"sd": "8A19", "direction": "UP", "lower_bound": 101582.5, "upper_bound": 101650.48, "middle": 101616.49},
+  {"sd": "8A21", "direction": "UP", "lower_bound": 101650.48, "upper_bound": 101982.59, "middle": 101816.54},
+  {"sd": "8A23", "direction": "UP", "lower_bound": 101982.59, "upper_bound": 102312.76, "middle": 102147.68},
+  {"sd": "8A25", "direction": "UP", "lower_bound": 102312.76, "upper_bound": 102644.99, "middle": 102478.88},
+  {"sd": "601", "direction": "UP", "lower_bound": 102644.99, "upper_bound": 102712.97, "middle": 102678.98},
+  {"sd": "603", "direction": "UP", "lower_bound": 102712.97, "upper_bound": 102994.39, "middle": 102853.68},
+  {"sd": "605", "direction": "UP", "lower_bound": 102994.39, "upper_bound": 103274.27, "middle": 103134.33},
+  {"sd": "607", "direction": "UP", "lower_bound": 103274.27, "upper_bound": 103553.81, "middle": 103414.04},
+  {"sd": "609", "direction": "UP", "lower_bound": 103553.81, "upper_bound": 103833.75, "middle": 103693.78},
+  {"sd": "611", "direction": "UP", "lower_bound": 103833.75, "upper_bound": 104115.15, "middle": 103974.45},
+  {"sd": "613", "direction": "UP", "lower_bound": 104115.15, "upper_bound": 104183.1, "middle": 104149.13},
+  {"sd": "515", "direction": "UP", "lower_bound": 104183.1, "upper_bound": 104471.6, "middle": 104327.35},
+  {"sd": "517", "direction": "UP", "lower_bound": 104471.6, "upper_bound": 104763.23, "middle": 104617.42},
+  {"sd": "519", "direction": "UP", "lower_bound": 104763.23, "upper_bound": 104860.57, "middle": 104811.9},
+  {"sd": "521", "direction": "UP", "lower_bound": 104860.57, "upper_bound": 104976.43, "middle": 104918.5},
+  {"sd": "523", "direction": "UP", "lower_bound": 104976.43, "upper_bound": 105045.7, "middle": 105011.07},
+  {"sd": "525", "direction": "UP", "lower_bound": 105045.7, "upper_bound": 105363.49, "middle": 105204.6},
+  {"sd": "527", "direction": "UP", "lower_bound": 105363.49, "upper_bound": 105681.03, "middle": 105522.26},
+  {"sd": "529", "direction": "UP", "lower_bound": 105681.03, "upper_bound": 105996.22, "middle": 105838.63},
+  {"sd": "531", "direction": "UP", "lower_bound": 105996.22, "upper_bound": 106312.22, "middle": 106154.22},
+  {"sd": "533", "direction": "UP", "lower_bound": 106312.22, "upper_bound": 106630.39, "middle": 106471.31},
+  {"sd": "001", "direction": "UP", "lower_bound": 106630.39, "upper_bound": 106698.36, "middle": 106664.38},
+  {"sd": "003", "direction": "UP", "lower_bound": 106698.36, "upper_bound": 107001.08, "middle": 106849.72},
+  {"sd": "005", "direction": "UP", "lower_bound": 107001.08, "upper_bound": 107302.53, "middle": 107151.81},
+  {"sd": "007", "direction": "UP", "lower_bound": 107302.53, "upper_bound": 107371.23, "middle": 107336.88},
+  {"sd": "009", "direction": "UP", "lower_bound": 107371.23, "upper_bound": 107472.23, "middle": 107421.73},
+  {"sd": "011", "direction": "UP", "lower_bound": 107472.23, "upper_bound": 107638.0, "middle": 107555.12},
+  {"sd": "013", "direction": "UP", "lower_bound": 107638.0, "upper_bound": 107813.22, "middle": 107725.61},
+  {"sd": "015", "direction": "UP", "lower_bound": 107813.22, "upper_bound": 107907.28, "middle": 107860.25},
+  {"sd": "017", "direction": "UP", "lower_bound": 107907.28, "upper_bound": 108150.31, "middle": 108028.8},
+  {"sd": "019", "direction": "UP", "lower_bound": 108150.31, "upper_bound": 108240.25, "middle": 108195.28},
+  {"sd": "021", "direction": "UP", "lower_bound": 108240.25, "upper_bound": 108330.29, "middle": 108285.27},
+  {"sd": "023", "direction": "UP", "lower_bound": 108330.29, "upper_bound": 108397.32, "middle": 108363.81},
+  {"sd": "025", "direction": "UP", "lower_bound": 108397.32, "upper_bound": 108512.78, "middle": 108455.05},
+  {"sd": "029", "direction": "UP", "lower_bound": 108512.78, "upper_bound": 108621.33, "middle": 108567.06},
+  {"sd": "031", "direction": "UP", "lower_bound": 108621.33, "upper_bound": 108684.89, "middle": 108653.11},
+  {"sd": "X801", "direction": "UP", "lower_bound": 99764.9, "upper_bound": 99843.84, "middle": 99804.37},
+  {"sd": "X501", "direction": "UP", "lower_bound": 99634.53, "upper_bound": 99700.99, "middle": 99667.76},
+  {"sd": "9ST201", "direction": "UP", "lower_bound": 99700.81, "upper_bound": 99777.4, "middle": 99739.11},
+  {"sd": "X101", "direction": "UP", "lower_bound": 91180.92, "upper_bound": 91258.95, "middle": 91219.94},
+  {"sd": "X801", "direction": "DN", "lower_bound": 99777.18, "upper_bound": 99843.67, "middle": 99810.43},
+  {"sd": "X501", "direction": "DN", "lower_bound": 99634.66, "upper_bound": 99701.16, "middle": 99667.91},
+  {"sd": "9ST201", "direction": "DN", "lower_bound": 99700.81, "upper_bound": 99777.4, "middle": 99739.11},
+  {"sd": "X101", "direction": "DN", "lower_bound": 91185.54, "upper_bound": 91254.37, "middle": 91219.96}
+];
+
+// 3. 18 車站基礎數據 (G17 到 G0，依路線排列)
+const SLOPE_DATABASE = [
+  {"lower": 90930.73, "upper": 91543.0, "grade": 0.0, "dir": "DN"},
+  {"lower": 91543.0, "upper": 91633.0, "grade": 2.5, "dir": "DN"},
+  {"lower": 91633.0, "upper": 91833.0, "grade": -0.05, "dir": "DN"},
+  {"lower": 91833.0, "upper": 92068.23, "grade": 2.98, "dir": "DN"},
+  {"lower": 92068.23, "upper": 92308.19, "grade": 0.46, "dir": "DN"},
+  {"lower": 92308.19, "upper": 92613.21, "grade": 0.0, "dir": "DN"},
+  {"lower": 92613.21, "upper": 92722.61, "grade": 2.19, "dir": "DN"},
+  {"lower": 92722.61, "upper": 93061.6, "grade": 0.5, "dir": "DN"},
+  {"lower": 93061.6, "upper": 93310.63, "grade": 1.69, "dir": "DN"},
+  {"lower": 93310.63, "upper": 93577.23, "grade": 0.0, "dir": "DN"},
+  {"lower": 93577.23, "upper": 93792.23, "grade": 0.47, "dir": "DN"},
+  {"lower": 93792.23, "upper": 94072.23, "grade": 2.79, "dir": "DN"},
+  {"lower": 94072.23, "upper": 94267.24, "grade": 0.0, "dir": "DN"},
+  {"lower": 94267.24, "upper": 94392.24, "grade": 2.64, "dir": "DN"},
+  {"lower": 94392.24, "upper": 94652.24, "grade": -2.38, "dir": "DN"},
+  {"lower": 94652.24, "upper": 94812.24, "grade": 3.0, "dir": "DN"},
+  {"lower": 94812.24, "upper": 95240.46, "grade": 0.0, "dir": "DN"},
+  {"lower": 95240.46, "upper": 96318.58, "grade": 0.31, "dir": "DN"},
+  {"lower": 96318.58, "upper": 96598.58, "grade": 1.57, "dir": "DN"},
+  {"lower": 96598.58, "upper": 96835.35, "grade": 0.0, "dir": "DN"},
+  {"lower": 96835.35, "upper": 96985.39, "grade": 1.2, "dir": "DN"},
+  {"lower": 96985.39, "upper": 97245.61, "grade": 0.5, "dir": "DN"},
+  {"lower": 97245.61, "upper": 97475.53, "grade": 1.83, "dir": "DN"},
+  {"lower": 97475.53, "upper": 97663.21, "grade": 0.0, "dir": "DN"},
+  {"lower": 97663.21, "upper": 97863.21, "grade": 1.3, "dir": "DN"},
+  {"lower": 97863.21, "upper": 98043.21, "grade": 0.67, "dir": "DN"},
+  {"lower": 98043.21, "upper": 98229.39, "grade": 0.0, "dir": "DN"},
+  {"lower": 98229.39, "upper": 98874.39, "grade": 0.87, "dir": "DN"},
+  {"lower": 98874.39, "upper": 99069.84, "grade": 0.0, "dir": "DN"},
+  {"lower": 99069.84, "upper": 99469.84, "grade": 2.8, "dir": "DN"},
+  {"lower": 99469.84, "upper": 100075.1, "grade": 0.0, "dir": "DN"},
+  {"lower": 100075.1, "upper": 100155.1, "grade": 2.5, "dir": "DN"},
+  {"lower": 100155.1, "upper": 100340.1, "grade": 0.0, "dir": "DN"},
+  {"lower": 100340.1, "upper": 100560.89, "grade": 1.33, "dir": "DN"},
+  {"lower": 100560.89, "upper": 100700.3, "grade": 1.28, "dir": "DN"},
+  {"lower": 100700.3, "upper": 100874.52, "grade": 0.0, "dir": "DN"},
+  {"lower": 100874.52, "upper": 101154.83, "grade": 1.48, "dir": "DN"},
+  {"lower": 101154.83, "upper": 101546.35, "grade": 1.26, "dir": "DN"},
+  {"lower": 101546.35, "upper": 101690.45, "grade": 0.0, "dir": "DN"},
+  {"lower": 101690.45, "upper": 102000.74, "grade": 0.3, "dir": "DN"},
+  {"lower": 102000.74, "upper": 102611.16, "grade": 1.22, "dir": "DN"},
+  {"lower": 102611.16, "upper": 102763.58, "grade": 0.0, "dir": "DN"},
+  {"lower": 102763.58, "upper": 104065.02, "grade": 0.3, "dir": "DN"},
+  {"lower": 104065.02, "upper": 104235.22, "grade": 0.0, "dir": "DN"},
+  {"lower": 104235.22, "upper": 104755.22, "grade": 1.04, "dir": "DN"},
+  {"lower": 104755.22, "upper": 105097.8, "grade": 0.0, "dir": "DN"},
+  {"lower": 105097.8, "upper": 105436.3, "grade": 1.57, "dir": "DN"},
+  {"lower": 105436.3, "upper": 106091.08, "grade": 0.32, "dir": "DN"},
+  {"lower": 106091.08, "upper": 106561.08, "grade": 3.0, "dir": "DN"},
+  {"lower": 106561.08, "upper": 106819.24, "grade": 0.0, "dir": "DN"},
+  {"lower": 106819.24, "upper": 107023.24, "grade": -0.3, "dir": "DN"},
+  {"lower": 107023.24, "upper": 107239.24, "grade": 0.7, "dir": "DN"},
+  {"lower": 107239.24, "upper": 107475.64, "grade": 0.0, "dir": "DN"},
+  {"lower": 107475.64, "upper": 107636.49, "grade": 2.5, "dir": "DN"},
+  {"lower": 107636.49, "upper": 108072.49, "grade": -2.5, "dir": "DN"},
+  {"lower": 108072.49, "upper": 108661.78, "grade": 0.0, "dir": "DN"},
+  {"lower": 90927.21, "upper": 91538.0, "grade": 0.0, "dir": "UP"},
+  {"lower": 91538.0, "upper": 91628.0, "grade": 2.5, "dir": "UP"},
+  {"lower": 91628.0, "upper": 91828.0, "grade": -0.05, "dir": "UP"},
+  {"lower": 91828.0, "upper": 92063.0, "grade": 2.98, "dir": "UP"},
+  {"lower": 92063.0, "upper": 92303.0, "grade": 4.6, "dir": "UP"},
+  {"lower": 92303.0, "upper": 92608.62, "grade": 0.0, "dir": "UP"},
+  {"lower": 92608.62, "upper": 92718.62, "grade": 2.18, "dir": "UP"},
+  {"lower": 92718.62, "upper": 93058.62, "grade": 0.5, "dir": "UP"},
+  {"lower": 93058.62, "upper": 93308.62, "grade": 1.68, "dir": "UP"},
+  {"lower": 93308.62, "upper": 93575.71, "grade": 0.0, "dir": "UP"},
+  {"lower": 93575.71, "upper": 93790.71, "grade": 0.47, "dir": "UP"},
+  {"lower": 93790.71, "upper": 94070.71, "grade": 2.79, "dir": "UP"},
+  {"lower": 94070.71, "upper": 94265.71, "grade": 0.0, "dir": "UP"},
+  {"lower": 94265.71, "upper": 94390.71, "grade": 2.64, "dir": "UP"},
+  {"lower": 94390.71, "upper": 94650.71, "grade": -2.38, "dir": "UP"},
+  {"lower": 94650.71, "upper": 94810.71, "grade": 3.0, "dir": "UP"},
+  {"lower": 94810.71, "upper": 95242.05, "grade": 0.0, "dir": "UP"},
+  {"lower": 95242.05, "upper": 96322.05, "grade": 0.31, "dir": "UP"},
+  {"lower": 96322.05, "upper": 96602.05, "grade": 1.57, "dir": "UP"},
+  {"lower": 96602.05, "upper": 96838.94, "grade": 0.0, "dir": "UP"},
+  {"lower": 96838.94, "upper": 96988.94, "grade": 1.2, "dir": "UP"},
+  {"lower": 96988.94, "upper": 97248.94, "grade": 0.5, "dir": "UP"},
+  {"lower": 97248.94, "upper": 97478.94, "grade": 1.83, "dir": "UP"},
+  {"lower": 97478.94, "upper": 97666.78, "grade": 0.0, "dir": "UP"},
+  {"lower": 97666.78, "upper": 97866.78, "grade": 1.3, "dir": "UP"},
+  {"lower": 97866.78, "upper": 98046.78, "grade": 0.67, "dir": "UP"},
+  {"lower": 98046.78, "upper": 98232.96, "grade": 0.0, "dir": "UP"},
+  {"lower": 98232.96, "upper": 98877.96, "grade": 0.87, "dir": "UP"},
+  {"lower": 98877.96, "upper": 99073.37, "grade": 0.0, "dir": "UP"},
+  {"lower": 99073.37, "upper": 99473.37, "grade": 2.8, "dir": "UP"},
+  {"lower": 99473.37, "upper": 100074.8, "grade": 0.0, "dir": "UP"},
+  {"lower": 100074.8, "upper": 100154.8, "grade": 2.5, "dir": "UP"},
+  {"lower": 100154.8, "upper": 100339.8, "grade": 0.0, "dir": "UP"},
+  {"lower": 100339.8, "upper": 100559.8, "grade": 1.33, "dir": "UP"},
+  {"lower": 100559.8, "upper": 100699.8, "grade": 1.27, "dir": "UP"},
+  {"lower": 100699.8, "upper": 100872.74, "grade": 0.0, "dir": "UP"},
+  {"lower": 100872.74, "upper": 101152.74, "grade": 1.48, "dir": "UP"},
+  {"lower": 101152.74, "upper": 101542.74, "grade": 1.27, "dir": "UP"},
+  {"lower": 101542.74, "upper": 101686.84, "grade": 0.0, "dir": "UP"},
+  {"lower": 101686.84, "upper": 101996.84, "grade": 0.3, "dir": "UP"},
+  {"lower": 101996.84, "upper": 102606.84, "grade": 1.22, "dir": "UP"},
+  {"lower": 102606.84, "upper": 102759.27, "grade": 0.0, "dir": "UP"},
+  {"lower": 102759.27, "upper": 104059.27, "grade": 0.3, "dir": "UP"},
+  {"lower": 104059.27, "upper": 104229.46, "grade": 0.0, "dir": "UP"},
+  {"lower": 104229.46, "upper": 104749.46, "grade": 1.04, "dir": "UP"},
+  {"lower": 104749.46, "upper": 105092.04, "grade": 0.0, "dir": "UP"},
+  {"lower": 105092.04, "upper": 105432.04, "grade": 1.57, "dir": "UP"},
+  {"lower": 105432.04, "upper": 106092.04, "grade": 0.32, "dir": "UP"},
+  {"lower": 106092.04, "upper": 106562.04, "grade": 3.0, "dir": "UP"},
+  {"lower": 106562.04, "upper": 106817.07, "grade": 0.0, "dir": "UP"},
+  {"lower": 106817.07, "upper": 107017.72, "grade": -0.31, "dir": "UP"},
+  {"lower": 107017.72, "upper": 107233.72, "grade": 0.7, "dir": "UP"},
+  {"lower": 107233.72, "upper": 107497.4, "grade": 0.0, "dir": "UP"},
+  {"lower": 107497.4, "upper": 107607.4, "grade": -1.97, "dir": "UP"},
+  {"lower": 107607.4, "upper": 107794.9, "grade": -2.5, "dir": "UP"},
+  {"lower": 107794.9, "upper": 108684.89, "grade": 0.0, "dir": "UP"}
+];
+
+// 18 車站基礎數據 (G17 到 G0，依路線排列)
+const STATIONS_LIST = [
+  {"code": "G17", "displayName": "高鐵", "fullName": "G17高鐵",
+   "up": {"lower": 91357.82, "upper": 91426.8, "center": 91392.77, "elev": 44.0},
+   "dn": {"lower": 91362.66, "upper": 91431.61, "center": 91397.64, "elev": 44.0}},
+  {"code": "G16", "displayName": "烏日", "fullName": "G16烏日",
+   "up": {"lower": 92424.57, "upper": 92492.52, "center": 92458.61, "elev": 45.03},
+   "dn": {"lower": 92429.33, "upper": 92497.29, "center": 92463.32, "elev": 45.03}},
+  {"code": "G15", "displayName": "九德", "fullName": "G15九德",
+   "up": {"lower": 93456.59, "upper": 93524.57, "center": 93490.58, "elev": 45.86},
+   "dn": {"lower": 93457.89, "upper": 93525.86, "center": 93491.84, "elev": 45.86}},
+  {"code": "G14", "displayName": "九張犁", "fullName": "G14九張犁",
+   "up": {"lower": 94146.69, "upper": 94214.65, "center": 94180.7, "elev": 46.74},
+   "dn": {"lower": 94147.98, "upper": 94215.89, "center": 94182.03, "elev": 46.74}},
+  {"code": "G13", "displayName": "大慶", "fullName": "G13大慶",
+   "up": {"lower": 95065.17, "upper": 95136.09, "center": 95102.07, "elev": 46.93},
+   "dn": {"lower": 95067.44, "upper": 95137.27, "center": 95103.28, "elev": 46.93}},
+  {"code": "G12", "displayName": "豐樂", "fullName": "G12豐樂",
+   "up": {"lower": 96674.88, "upper": 96742.82, "center": 96708.91, "elev": 47.7},
+   "dn": {"lower": 96670.96, "upper": 96738.92, "center": 96704.93, "elev": 47.7}},
+  {"code": "G11", "displayName": "南屯", "fullName": "G11南屯",
+   "up": {"lower": 97552.71, "upper": 97620.65, "center": 97586.66, "elev": 48.43},
+   "dn": {"lower": 97548.74, "upper": 97616.72, "center": 97582.75, "elev": 48.43}},
+  {"code": "G10a", "displayName": "森林", "fullName": "G10a森林",
+   "up": {"lower": 98093.82, "upper": 98161.82, "center": 98127.82, "elev": 48.82},
+   "dn": {"lower": 98089.95, "upper": 98157.85, "center": 98123.9, "elev": 48.82}},
+  {"code": "G10", "displayName": "水安", "fullName": "G10水安",
+   "up": {"lower": 98949.23, "upper": 99017.22, "center": 98983.25, "elev": 49.38},
+   "dn": {"lower": 98945.48, "upper": 99013.45, "center": 98979.49, "elev": 49.38}},
+  {"code": "G9", "displayName": "市府", "fullName": "G9市府",
+   "up": {"lower": 99965.63, "upper": 100033.61, "center": 99999.61, "elev": 50.5},
+   "dn": {"lower": 99965.48, "upper": 100033.74, "center": 99999.72, "elev": 50.5}},
+  {"code": "G8a", "displayName": "櫻花", "fullName": "G8a櫻花",
+   "up": {"lower": 100768.49, "upper": 100836.44, "center": 100802.47, "elev": 51.17},
+   "dn": {"lower": 100770.18, "upper": 100838.17, "center": 100804.17, "elev": 51.17}},
+  {"code": "G8", "displayName": "文華", "fullName": "G8文華",
+   "up": {"lower": 101582.5, "upper": 101650.48, "center": 101616.5, "elev": 52.08},
+   "dn": {"lower": 101586.15, "upper": 101654.05, "center": 101620.08, "elev": 52.08}},
+  {"code": "G7", "displayName": "中清", "fullName": "G7中清",
+   "up": {"lower": 102644.99, "upper": 102712.97, "center": 102678.98, "elev": 52.91},
+   "dn": {"lower": 102649.29, "upper": 102717.24, "center": 102683.26, "elev": 52.91}},
+  {"code": "G6", "displayName": "崇德", "fullName": "G6崇德",
+   "up": {"lower": 104115.15, "upper": 104183.1, "center": 104149.12, "elev": 53.3},
+   "dn": {"lower": 104120.9, "upper": 104188.85, "center": 104154.81, "elev": 53.3}},
+  {"code": "G5", "displayName": "四維", "fullName": "G5四維",
+   "up": {"lower": 104976.43, "upper": 105045.7, "center": 105011.7, "elev": 53.85},
+   "dn": {"lower": 104982.44, "upper": 105051.4, "center": 105017.42, "elev": 53.85}},
+  {"code": "G4", "displayName": "松竹", "fullName": "G4松竹",
+   "up": {"lower": 106630.39, "upper": 106698.36, "center": 106664.41, "elev": 56.0},
+   "dn": {"lower": 106628.66, "upper": 106696.64, "center": 106662.65, "elev": 56.0}},
+  {"code": "G3", "displayName": "舊社", "fullName": "G3舊社",
+   "up": {"lower": 107302.53, "upper": 107371.23, "center": 107336.59, "elev": 56.09},
+   "dn": {"lower": 107307.01, "upper": 107376.08, "center": 107341.03, "elev": 56.09}},
+  {"code": "G0", "displayName": "北屯", "fullName": "G0北屯",
+   "up": {"lower": 108330.29, "upper": 108397.32, "center": 108365.28, "elev": 55.4},
+   "dn": {"lower": 108293.09, "upper": 108361.75, "center": 108327.28, "elev": 55.4}}
+];
+
+// 動員紀錄由上到下固定排序 G0 至 G17
+const LOG_SORT_ORDER = [
+  "G0北屯", "G3舊社", "G4松竹", "G5四維", "G6崇德", "G7中清",
+  "G8文華", "G8a櫻花", "G9市府", "G10水安", "G10a森林", "G11南屯",
+  "G12豐樂", "G13大慶", "G14九張犁", "G15九德", "G16烏日", "G17高鐵"
+];
+
+// 全域狀態管理
+let manualMobilized = new Set(); // 區塊一直接點選動員的車站集合
+
+// 三個面板各自分別記錄當前已動員的單一車站 (單選互斥: null 或 車站名稱)
+let panelActiveCard = { 1: null, 2: null, 3: null };
+
+// 記錄處於「完成動員」狀態的卡片 (panelId -> stationName -> boolean)
+let panelCompletedCards = { 1: {}, 2: {}, 3: {} };
+
+// 結構化動員紀錄，用於精確匯出 TXT 與 XLSX
+let rawMobilizationEvents = [];
+
+// 1. 步行時間換算 (時速 2.8 km/h，小數第 2 位無條件進位到小數第 1 位)
+function formatWalkingTime(equivDist) {
+  let minutes = (equivDist * 60) / 2800;
+  let rounded = Math.ceil(minutes * 10) / 10;
+  return rounded.toFixed(1);
+}
+
+function getSlopeColor(slopeType) {
+  if (slopeType === '上坡') return '#dc2626';
+  if (slopeType === '下坡') return '#16a34a';
+  return '#475569';
+}
+
+function getFormattedTimestamp() {
+  let now = new Date();
+  let yyyy = now.getFullYear();
+  let mm = String(now.getMonth() + 1).padStart(2, '0');
+  let dd = String(now.getDate()).padStart(2, '0');
+  let hh = String(now.getHours()).padStart(2, '0');
+  let min = String(now.getMinutes()).padStart(2, '0');
+  let ss = String(now.getSeconds()).padStart(2, '0');
+  return `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+}
+
+
+function logMobilizationAction(stFullName, isMobilizing) {
+  logDetailedMobilizationAction(stFullName, isMobilizing);
+}
+
+// === v15 擴充：全域動員與 Modal 邏輯 ===
+let currentMobStation = null;       // 當前正在設定動員之車站
+let currentMobDirection = "上行";   // 當前選擇方向 ("上行" 或 "下行")
+let currentMobPanelId = null;       // 若從查詢面板點選，記錄 panelId
+let currentUpdatingEventId = null;  // 當前正要更新目的地之紀錄 ID
+
+const TRAIN_SETS = [
+  "車組01/02", "車組03/04", "車組05/06", "車組07/08", "車組09/10",
+  "車組11/12", "車組13/14", "車組15/16", "車組17/18", "車組19/20",
+  "車組21/22", "車組23/24", "車組25/26", "車組27/28", "車組29/30",
+  "車組31/32", "車組33/34", "車組35/36"
+];
+
+function initTrainSetOptions() {
+  let select = document.getElementById('trainSetSelect');
+  if (!select) return;
+  select.innerHTML = TRAIN_SETS.map(ts => `<option value="${ts}">${ts}</option>`).join('');
+}
+
+
+// 根據事故地點里程 (targetKm) 與移動方向推算預設邊界車站
+function predictPresetDestination(stFullName, targetKm, direction) {
+  if (targetKm === null || targetKm === undefined) return "目的地待定";
+
+  // 1. 檢查 targetKm 是否位於某車站月台/軌區範圍內
+  for (let i = 0; i < STATIONS_LIST.length; i++) {
+    let st = STATIONS_LIST[i];
+    let minL = Math.min(st.dn.lower, st.up.lower);
+    let maxU = Math.max(st.dn.upper, st.up.upper);
+    if (targetKm >= minL && targetKm <= maxU) {
+      return st.fullName;
+    }
+  }
+
+  // 2. 檢查 targetKm 位於全線端點或車站區間
+  let firstSt = STATIONS_LIST[0];
+  let lastSt = STATIONS_LIST[STATIONS_LIST.length - 1];
+  let minFirst = Math.min(firstSt.dn.lower, firstSt.up.lower);
+  let maxLast = Math.max(lastSt.dn.upper, lastSt.up.upper);
+
+  if (targetKm < minFirst) return firstSt.fullName;
+  if (targetKm > maxLast) return lastSt.fullName;
+
+  for (let i = 0; i < STATIONS_LIST.length - 1; i++) {
+    let stA = STATIONS_LIST[i];     // 南端車站 (如 G14)
+    let stB = STATIONS_LIST[i + 1]; // 北端車站 (如 G13)
+
+    let maxA = Math.max(stA.dn.upper, stA.up.upper);
+    let minB = Math.min(stB.dn.lower, stB.up.lower);
+
+    if (targetKm >= maxA && targetKm <= minB) {
+      // targetKm 位於 stA 與 stB 之間的區間軌道
+      if (direction === "上行") {
+        // 朝北 (往 G0) 行進，經過 stA 後抵達事故點，前方邊界車站為 stB
+        return stB.fullName;
+      } else {
+        // 朝南 (往 G17) 行進，經過 stB 後抵達事故點，前方邊界車站為 stA
+        return stA.fullName;
+      }
+    }
+  }
+
+  return "目的地待定";
+}
+
+function openMobSetupModal(stFullName, panelId = null, standbyStatus = null) {
+  currentMobStation = stFullName;
+  currentMobPanelId = panelId;
+
+  let res = (panelId !== null && lastComputedPanelResults[panelId]) ? lastComputedPanelResults[panelId] : null;
+  currentMobTargetKm = res ? res.targetKm : null;
+
+  let titleEl = document.getElementById('mobModalTitle');
+  if (titleEl) titleEl.innerText = `🚉 【${stFullName}】動員詳細設定`;
+
+  let stIdx = STATIONS_LIST.findIndex(s => s.fullName === stFullName);
+  let upBtn = document.getElementById('dirUpBtn');
+  let downBtn = document.getElementById('dirDownBtn');
+
+  // 1. 端點站保護機制與方向智慧預設
+  if (stIdx === 17) { // G0 北屯 (上端點站)
+    upBtn.classList.add('dir-btn-disabled');
+    downBtn.classList.remove('dir-btn-disabled');
+    currentMobDirection = "下行";
+  } else if (stIdx === 0) { // G17 高鐵 (下端點站)
+    downBtn.classList.add('dir-btn-disabled');
+    upBtn.classList.remove('dir-btn-disabled');
+    currentMobDirection = "上行";
+  } else {
+    upBtn.classList.remove('dir-btn-disabled');
+    downBtn.classList.remove('dir-btn-disabled');
+
+    // 查詢面板卡片觸發：南端待命預設「下行」；北端/月台軌區預設「上行」
+    // 區塊一手動點選：預設「上行」
+    if (panelId !== null && standbyStatus) {
+      if (standbyStatus === "南端待命") {
+        currentMobDirection = "下行";
+      } else {
+        currentMobDirection = "上行";
+      }
+    } else {
+      currentMobDirection = "上行";
+    }
+  }
+
+  updateDirBtnStyles();
+  populateDestStationSelect();
+
+  // 2. 目的地車站智慧預設 (根據事故 SD 里程與移動方向推算)
+  let destSelect = document.getElementById('destStationSelect');
+  if (destSelect && stIdx !== -1) {
+    if (panelId !== null) {
+      let targetDestStation = predictPresetDestination(stFullName, currentMobTargetKm, currentMobDirection);
+      if (targetDestStation) {
+        let hasOpt = Array.from(destSelect.options).some(o => o.value === targetDestStation);
+        if (hasOpt) {
+          destSelect.value = targetDestStation;
+        } else {
+          destSelect.value = stFullName;
+        }
+      }
+    } else {
+      // 來自區塊一手動點選：預設「目的地待定」
+      destSelect.value = "目的地待定";
+    }
+  }
+
+  // 3. 移動方式智慧預設
+  initTrainSetOptions();
+  let methodSelect = document.getElementById('mobMethodSelect');
+  let trainSelect = document.getElementById('trainSetSelect');
+
+  if (panelId !== null) {
+    // 查詢面板卡片預設：軌道步行
+    if (methodSelect) methodSelect.value = "軌道步行";
+  } else {
+    // 區塊一手動點選預設：搭乘列車 (車組01/02)
+    if (methodSelect) methodSelect.value = "搭乘列車";
+    if (trainSelect) trainSelect.value = "車組01/02";
+  }
+  onMobMethodChange();
+
+  let modal = document.getElementById('mobSetupModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeMobSetupModal() {
+  let modal = document.getElementById('mobSetupModal');
+  if (modal) modal.style.display = 'none';
+  currentMobStation = null;
+  currentMobPanelId = null;
+  currentMobTargetKm = null;
+}
+
+function setMobDirection(dir) {
+  let stIdx = STATIONS_LIST.findIndex(s => s.fullName === currentMobStation);
+  if (dir === "上行" && stIdx === 17) return;
+  if (dir === "下行" && stIdx === 0) return;
+
+  currentMobDirection = dir;
+  updateDirBtnStyles();
+  populateDestStationSelect();
+
+  // 若來自查詢面板，切換方向時連動即時重算最新預設目的地
+  if (currentMobPanelId !== null) {
+    let destSelect = document.getElementById('destStationSelect');
+    if (destSelect) {
+      let targetDestStation = predictPresetDestination(currentMobStation, currentMobTargetKm, currentMobDirection);
+      if (targetDestStation) {
+        let hasOpt = Array.from(destSelect.options).some(o => o.value === targetDestStation);
+        if (hasOpt) {
+          destSelect.value = targetDestStation;
+        } else {
+          destSelect.value = currentMobStation;
+        }
+      }
+    }
+  }
+}
+
+function updateDirBtnStyles() {
+  let upBtn = document.getElementById('dirUpBtn');
+  let downBtn = document.getElementById('dirDownBtn');
+  if (currentMobDirection === "上行") {
+    upBtn.classList.add('dir-btn-active');
+    downBtn.classList.remove('dir-btn-active');
+  } else {
+    downBtn.classList.add('dir-btn-active');
+    upBtn.classList.remove('dir-btn-active');
+  }
+}
+
+// 動態渲染目的地車站選單 (包含動員車站本身與待定選項)
+function populateDestStationSelect() {
+  let select = document.getElementById('destStationSelect');
+  if (!select) return;
+
+  let stIdx = STATIONS_LIST.findIndex(s => s.fullName === currentMobStation);
+  let options = ['<option value="目的地待定">⏳ 目的地待定</option>'];
+
+  if (stIdx !== -1) {
+    if (currentMobDirection === "上行") {
+      // 包含動員車站本身 (stIdx) 至 G0 北屯 (17)
+      for (let i = stIdx; i <= 17; i++) {
+        let st = STATIONS_LIST[i];
+        options.push(`<option value="${st.fullName}">${st.code} ${st.displayName}</option>`);
+      }
+    } else {
+      // 包含動員車站本身 (stIdx) 至 G17 高鐵 (0)
+      for (let i = stIdx; i >= 0; i--) {
+        let st = STATIONS_LIST[i];
+        options.push(`<option value="${st.fullName}">${st.code} ${st.displayName}</option>`);
+      }
+    }
+  }
+
+  select.innerHTML = options.join('');
+}
+
+function onMobMethodChange() {
+  let methodSelect = document.getElementById('mobMethodSelect');
+  let trainGroup = document.getElementById('trainSetGroup');
+  if (!methodSelect || !trainGroup) return;
+
+  if (methodSelect.value === "搭乘列車") {
+    trainGroup.style.display = 'flex';
+  } else {
+    trainGroup.style.display = 'none';
+  }
+}
+
+// 確認送出動員設定
+function confirmMobSetup() {
+  if (!currentMobStation) return;
+
+  let destSelect = document.getElementById('destStationSelect');
+  let methodSelect = document.getElementById('mobMethodSelect');
+  let trainSelect = document.getElementById('trainSetSelect');
+
+  let destStr = destSelect ? destSelect.value : "目的地待定";
+  let methodType = methodSelect ? methodSelect.value : "搭乘列車";
+  let fullMethodStr = methodType;
+
+  if (methodType === "搭乘列車" && trainSelect) {
+    fullMethodStr = `搭乘列車 (${trainSelect.value})`;
+  }
+
+  if (currentMobPanelId) {
+    panelActiveCard[currentMobPanelId] = currentMobStation;
+  } else {
+    manualMobilized.add(currentMobStation);
+  }
+
+  logDetailedMobilizationAction(currentMobStation, true, currentMobDirection, fullMethodStr, destStr);
+
+  closeMobSetupModal();
+  updateAllPanelsAndBar();
+}
+
+// 寫入動員歷程紀錄物件
+function logDetailedMobilizationAction(stFullName, isMobilizing, direction, methodStr, destStr) {
+  let ts = getFormattedTimestamp();
+
+  if (isMobilizing) {
+    let evt = {
+      id: 'mob_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+      seq: rawMobilizationEvents.length + 1,
+      action: "動員",
+      station: stFullName,
+      time: ts,
+      direction: direction || "-",
+      method: methodStr || "-",
+      destination: destStr || "目的地待定",
+      isPendingDest: (destStr === "目的地待定"),
+      updateTime: null
+    };
+    rawMobilizationEvents.push(evt);
+  } else {
+    let evt = {
+      id: 'unmob_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+      seq: rawMobilizationEvents.length + 1,
+      action: "解除動員",
+      station: stFullName,
+      time: ts,
+      direction: "-",
+      method: "-",
+      destination: "-",
+      isPendingDest: false,
+      updateTime: null
+    };
+    rawMobilizationEvents.push(evt);
+  }
+}
+
+// 手動更新動員資訊彈窗控制 (支援方向、目的地、移動方式與車組)
+function initUpdateTrainSetOptions() {
+  let trainSelect = document.getElementById('updateTrainSelect');
+  if (!trainSelect) return;
+  let options = [];
+  for (let i = 1; i <= 35; i += 2) {
+    let trainCode = `車組${String(i).padStart(2, '0')}/${String(i + 1).padStart(2, '0')}`;
+    options.push(`<option value="${trainCode}">${trainCode}</option>`);
+  }
+  trainSelect.innerHTML = options.join('');
+}
+
+function openUpdateDestModal(evtId) {
+  let evt = rawMobilizationEvents.find(e => e.id === evtId);
+  if (!evt) return;
+
+  currentUpdatingEventId = evtId;
+  let titleEl = document.getElementById('updateDestModalTitle');
+  if (titleEl) titleEl.innerText = `✏️ 手動更新動員資訊 (${evt.station})`;
+
+  let stIdx = STATIONS_LIST.findIndex(s => s.fullName === evt.station);
+  let upBtn = document.getElementById('updateDirUpBtn');
+  let downBtn = document.getElementById('updateDirDownBtn');
+
+  // 端點站選擇限制
+  if (stIdx === 17) { // G0 北屯
+    if (upBtn) upBtn.classList.add('dir-btn-disabled');
+    if (downBtn) downBtn.classList.remove('dir-btn-disabled');
+    currentUpdateDirection = "下行";
+  } else if (stIdx === 0) { // G17 高鐵
+    if (downBtn) downBtn.classList.add('dir-btn-disabled');
+    if (upBtn) upBtn.classList.remove('dir-btn-disabled');
+    currentUpdateDirection = "上行";
+  } else {
+    if (upBtn) upBtn.classList.remove('dir-btn-disabled');
+    if (downBtn) downBtn.classList.remove('dir-btn-disabled');
+    currentUpdateDirection = (evt.direction && evt.direction !== "-") ? evt.direction : "上行";
+  }
+
+  updateUpdateDirBtnStyles();
+  populateUpdateDestSelect();
+
+  let select = document.getElementById('updateDestSelect');
+  if (select && evt.destination) {
+    let hasVal = Array.from(select.options).some(o => o.value === evt.destination);
+    if (hasVal) {
+      select.value = evt.destination;
+    } else {
+      select.value = "目的地待定";
+    }
+  }
+
+  initUpdateTrainSetOptions();
+  let methodSelect = document.getElementById('updateMethodSelect');
+  let trainSelect = document.getElementById('updateTrainSelect');
+
+  if (methodSelect) {
+    let m = evt.method || "待定";
+    if (m.startsWith("搭乘列車")) {
+      methodSelect.value = "搭乘列車";
+      let match = m.match(/\((車組\d+\/\d+)\)/);
+      if (match && trainSelect) {
+        trainSelect.value = match[1];
+      }
+    } else if (m === "軌道步行") {
+      methodSelect.value = "軌道步行";
+    } else if (m === "站外移動") {
+      methodSelect.value = "站外移動";
+    } else {
+      methodSelect.value = "待定";
+    }
+  }
+  onUpdateMethodChange();
+
+  let modal = document.getElementById('updateDestModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeUpdateDestModal() {
+  let modal = document.getElementById('updateDestModal');
+  if (modal) modal.style.display = 'none';
+  currentUpdatingEventId = null;
+}
+
+function setUpdateMobDirection(dir) {
+  let evt = rawMobilizationEvents.find(e => e.id === currentUpdatingEventId);
+  if (evt) {
+    let stIdx = STATIONS_LIST.findIndex(s => s.fullName === evt.station);
+    if (dir === "上行" && stIdx === 17) return;
+    if (dir === "下行" && stIdx === 0) return;
+  }
+
+  currentUpdateDirection = dir;
+  updateUpdateDirBtnStyles();
+  populateUpdateDestSelect();
+}
+
+function updateUpdateDirBtnStyles() {
+  let upBtn = document.getElementById('updateDirUpBtn');
+  let downBtn = document.getElementById('updateDirDownBtn');
+  if (!upBtn || !downBtn) return;
+
+  if (currentUpdateDirection === "上行") {
+    upBtn.classList.add('dir-btn-active');
+    downBtn.classList.remove('dir-btn-active');
+  } else {
+    downBtn.classList.add('dir-btn-active');
+    upBtn.classList.remove('dir-btn-active');
+  }
+}
+
+function populateUpdateDestSelect() {
+  let select = document.getElementById('updateDestSelect');
+  if (!select) return;
+
+  let evt = rawMobilizationEvents.find(e => e.id === currentUpdatingEventId);
+  let stFullName = evt ? evt.station : null;
+  let stIdx = STATIONS_LIST.findIndex(s => s.fullName === stFullName);
+
+  let options = ['<option value="目的地待定">⏳ 目的地待定</option>'];
+
+  if (stIdx !== -1) {
+    if (currentUpdateDirection === "上行") {
+      for (let i = stIdx; i <= 17; i++) {
+        let st = STATIONS_LIST[i];
+        options.push(`<option value="${st.fullName}">${st.code} ${st.displayName}</option>`);
+      }
+    } else {
+      for (let i = stIdx; i >= 0; i--) {
+        let st = STATIONS_LIST[i];
+        options.push(`<option value="${st.fullName}">${st.code} ${st.displayName}</option>`);
+      }
+    }
+  }
+
+  select.innerHTML = options.join('');
+}
+
+function onUpdateMethodChange() {
+  let methodSelect = document.getElementById('updateMethodSelect');
+  let trainGroup = document.getElementById('updateTrainGroup');
+  if (!methodSelect || !trainGroup) return;
+
+  if (methodSelect.value === "搭乘列車") {
+    trainGroup.style.display = 'flex';
+  } else {
+    trainGroup.style.display = 'none';
+  }
+}
+
+function confirmUpdateDest() {
+  if (!currentUpdatingEventId) return;
+
+  let evt = rawMobilizationEvents.find(e => e.id === currentUpdatingEventId);
+  let destSelect = document.getElementById('updateDestSelect');
+  let methodSelect = document.getElementById('updateMethodSelect');
+  let trainSelect = document.getElementById('updateTrainSelect');
+
+  if (evt) {
+    let newDest = destSelect ? destSelect.value : "目的地待定";
+    let newMethodType = methodSelect ? methodSelect.value : "待定";
+    let fullMethodStr = newMethodType;
+
+    if (newMethodType === "搭乘列車" && trainSelect) {
+      fullMethodStr = `搭乘列車 (${trainSelect.value})`;
+    }
+
+    // 目的地方向智慧校正：若有確定目的地車站，自動校正地理方向
+    let finalDir = currentUpdateDirection;
+    if (newDest !== "目的地待定") {
+      let stIdx = STATIONS_LIST.findIndex(s => s.fullName === evt.station);
+      let destIdx = STATIONS_LIST.findIndex(s => s.fullName === newDest);
+      if (stIdx !== -1 && destIdx !== -1) {
+        if (destIdx > stIdx) {
+          finalDir = "上行";
+        } else if (destIdx < stIdx) {
+          finalDir = "下行";
+        }
+      }
+    }
+
+    evt.direction = finalDir;
+    evt.destination = newDest;
+    evt.method = fullMethodStr;
+    evt.isPendingDest = (newDest === "目的地待定");
+    evt.updateTime = getFormattedTimestamp();
+  }
+
+  closeUpdateDestModal();
+  renderMobilizationLogs();
+}
+
+// 2-a. 下載動員紀錄 (.txt)：由上至下固定為 G0 至 G17 排序，Windows CRLF (\r\n) 確保換行
+function downloadMobilizationLogsTxt() {
+  let nowStr = getFormattedTimestamp();
+  let timeFileStr = nowStr.replace(/[\/\s:]/g, '');
+
+  let content = "=========================================\r\n";
+  content += "  台中捷運綠線 動員決策系統 - 動員紀錄\r\n";
+  content += "  匯出時間：" + nowStr + "\r\n";
+  content += "=========================================\r\n\r\n";
+
+  if (rawMobilizationEvents.length === 0) {
+    content += "(尚無動員紀錄)\r\n";
+  } else {
+    let globalIndex = 1;
+    LOG_SORT_ORDER.forEach(st => {
+      let stEvents = rawMobilizationEvents.filter(e => e.station === st);
+      if (stEvents.length > 0) {
+        content += "【" + st + "】\r\n";
+        stEvents.forEach(evt => {
+          if (evt.action === "動員") {
+            let destText = evt.destination;
+            if (evt.updateTime) {
+              destText += ` (${evt.updateTime} 更新)`;
+            }
+            content += `  [${globalIndex}] ${evt.time} | 動員 | 方向：${evt.direction} | 移動方式：${evt.method} | 目的地車站：${destText}\r\n`;
+          } else {
+            content += `  [${globalIndex}] ${evt.time} | 解除動員\r\n`;
+          }
+          globalIndex++;
+        });
+        content += "\r\n";
+      }
+    });
+  }
+
+  try {
+    let blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = "台中捷運綠線_動員紀錄_" + timeFileStr + ".txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+  } catch (err) {
+    console.error("TXT 下載失敗:", err);
+    alert("下載 TXT 時發生錯誤：" + err.message);
+  }
+}
+
+
+// 2-b. 原生純前端離線 XLSX (OpenXML ZIP) 產生器
+// 產生 100% 符合 ECMA-376 標準之二進位 .xlsx 壓縮檔
+// 徹底排除副檔名與格式不符問題，Excel 開啟零警告、零錯誤
+
+const STATIC_OPENXML_FILES = {
+  "docProps/app.xml": "PFByb3BlcnRpZXMgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9vZmZpY2VEb2N1bWVudC8yMDA2L2V4dGVuZGVkLXByb3BlcnRpZXMiPjxBcHBsaWNhdGlvbj5NaWNyb3NvZnQgRXhjZWwgQ29tcGF0aWJsZSAvIE9wZW5weXhsIDMuMS41PC9BcHBsaWNhdGlvbj48QXBwVmVyc2lvbj4zLjE8L0FwcFZlcnNpb24+PC9Qcm9wZXJ0aWVzPg==",
+  "docProps/core.xml": "PGNwOmNvcmVQcm9wZXJ0aWVzIHhtbG5zOmNwPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvcGFja2FnZS8yMDA2L21ldGFkYXRhL2NvcmUtcHJvcGVydGllcyI+PGRjOmNyZWF0b3IgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj5vcGVucHl4bDwvZGM6Y3JlYXRvcj48ZGN0ZXJtczpjcmVhdGVkIHhtbG5zOmRjdGVybXM9Imh0dHA6Ly9wdXJsLm9yZy9kYy90ZXJtcy8iIHhtbG5zOnhzaT0iaHR0cDovL3d3dy53My5vcmcvMjAwMS9YTUxTY2hlbWEtaW5zdGFuY2UiIHhzaTp0eXBlPSJkY3Rlcm1zOlczQ0RURiI+MjAyNi0xMC0xNlQwNzoxMzoxMFo8L2RjdGVybXM6Y3JlYXRlZD48ZGN0ZXJtczptb2RpZmllZCB4bWxuczpkY3Rlcm1zPSJodHRwOi8vcHVybC5vcmcvZGMvdGVybXMvIiB4bWxuczp4c2k9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1MU2NoZW1hLWluc3RhbmNlIiB4c2k6dHlwZT0iZGN0ZXJtczpXM0NEVEYiPjIwMjYtMTAtMTZUMDc6MTM6MTBaPC9kY3Rlcm1zOm1vZGlmaWVkPjwvY3A6Y29yZVByb3BlcnRpZXM+",
+  "xl/theme/theme1.xml": "PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxhOnRoZW1lIHhtbG5zOmE9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9kcmF3aW5nbWwvMjAwNi9tYWluIiBuYW1lPSJPZmZpY2UgVGhlbWUiPgogIDxhOnRoZW1lRWxlbWVudHM+CiAgICA8YTpjbHJTY2hlbWUgbmFtZT0iT2ZmaWNlIj4KICAgICAgPGE6ZGsxPgogICAgICAgIDxhOnN5c0NsciB2YWw9IndpbmRvd1RleHQiIGxhc3RDbHI9IjAwMDAwMCIvPgogICAgICA8L2E6ZGsxPgogICAgICA8YTpsdDE+CiAgICAgICAgPGE6c3lzQ2xyIHZhbD0id2luZG93IiBsYXN0Q2xyPSJGRkZGRkYiLz4KICAgICAgPC9hOmx0MT4KICAgICAgPGE6ZGsyPgogICAgICAgIDxhOnNyZ2JDbHIgdmFsPSIxRjQ5N0QiLz4KICAgICAgPC9hOmRrMj4KICAgICAgPGE6bHQyPgogICAgICAgIDxhOnNyZ2JDbHIgdmFsPSJFRUVDRTEiLz4KICAgICAgPC9hOmx0Mj4KICAgICAgPGE6YWNjZW50MT4KICAgICAgICA8YTpzcmdiQ2xyIHZhbD0iNEY4MUJEIi8+CiAgICAgIDwvYTphY2NlbnQxPgogICAgICA8YTphY2NlbnQyPgogICAgICAgIDxhOnNyZ2JDbHIgdmFsPSJDMDUwNEQiLz4KICAgICAgPC9hOmFjY2VudDI+CiAgICAgIDxhOmFjY2VudDM+CiAgICAgICAgPGE6c3JnYkNsciB2YWw9IjlCQkI1OSIvPgogICAgICA8L2E6YWNjZW50Mz4KICAgICAgPGE6YWNjZW50ND4KICAgICAgICA8YTpzcmdiQ2xyIHZhbD0iODA2NEEyIi8+CiAgICAgIDwvYTphY2NlbnQ0PgogICAgICA8YTphY2NlbnQ1PgogICAgICAgIDxhOnNyZ2JDbHIgdmFsPSI0QkFDQzYiLz4KICAgICAgPC9hOmFjY2VudDU+CiAgICAgIDxhOmFjY2VudDY+CiAgICAgICAgPGE6c3JnYkNsciB2YWw9IkY3OTY0NiIvPgogICAgICA8L2E6YWNjZW50Nj4KICAgICAgPGE6aGxpbms+CiAgICAgICAgPGE6c3JnYkNsciB2YWw9IjAwMDBGRiIvPgogICAgICA8L2E6aGxpbms+CiAgICAgIDxhOmZvbEhsaW5rPgogICAgICAgIDxhOnNyZ2JDbHIgdmFsPSI4MDAwODAiLz4KICAgICAgPC9hOmZvbEhsaW5rPgogICAgPC9hOmNsclNjaGVtZT4KICAgIDxhOmZvbnRTY2hlbWUgbmFtZT0iT2ZmaWNlIj4KICAgICAgPGE6bWFqb3JGb250PgogICAgICAgIDxhOmxhdGluIHR5cGVmYWNlPSJDYW1icmlhIi8+CiAgICAgICAgPGE6ZWEgdHlwZWZhY2U9IiIvPgogICAgICAgIDxhOmNzIHR5cGVmYWNlPSIiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iSnBhbiIgdHlwZWZhY2U9IiYjeEZGMkQ7JiN4RkYzMzsgJiN4RkYzMDsmI3gzMEI0OyYjeDMwQjc7JiN4MzBDMzsmI3gzMEFGOyIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJIYW5nIiB0eXBlZmFjZT0iJiN4QjlEMTsmI3hDNzQwOyAmI3hBQ0UwOyYjeEI1MTU7Ii8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkhhbnMiIHR5cGVmYWNlPSImI3g1QjhCOyYjeDRGNTM7Ii8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkhhbnQiIHR5cGVmYWNlPSImI3g2NUIwOyYjeDdEMzA7JiN4NjYwRTsmI3g5QUQ0OyIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJBcmFiIiB0eXBlZmFjZT0iVGltZXMgTmV3IFJvbWFuIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkhlYnIiIHR5cGVmYWNlPSJUaW1lcyBOZXcgUm9tYW4iLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVGhhaSIgdHlwZWZhY2U9IlRhaG9tYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJFdGhpIiB0eXBlZmFjZT0iTnlhbGEiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iQmVuZyIgdHlwZWZhY2U9IlZyaW5kYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJHdWpyIiB0eXBlZmFjZT0iU2hydXRpIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IktobXIiIHR5cGVmYWNlPSJNb29sQm9yYW4iLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iS25kYSIgdHlwZWZhY2U9IlR1bmdhIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9Ikd1cnUiIHR5cGVmYWNlPSJSYWF2aSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJDYW5zIiB0eXBlZmFjZT0iRXVwaGVtaWEiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iQ2hlciIgdHlwZWZhY2U9IlBsYW50YWdlbmV0IENoZXJva2VlIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IllpaWkiIHR5cGVmYWNlPSJNaWNyb3NvZnQgWWkgQmFpdGkiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVGlidCIgdHlwZWZhY2U9Ik1pY3Jvc29mdCBIaW1hbGF5YSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJUaGFhIiB0eXBlZmFjZT0iTVYgQm9saSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJEZXZhIiB0eXBlZmFjZT0iTWFuZ2FsIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IlRlbHUiIHR5cGVmYWNlPSJHYXV0YW1pIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IlRhbWwiIHR5cGVmYWNlPSJMYXRoYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJTeXJjIiB0eXBlZmFjZT0iRXN0cmFuZ2VsbyBFZGVzc2EiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iT3J5YSIgdHlwZWZhY2U9IkthbGluZ2EiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iTWx5bSIgdHlwZWZhY2U9IkthcnRpa2EiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iTGFvbyIgdHlwZWZhY2U9IkRva0NoYW1wYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJTaW5oIiB0eXBlZmFjZT0iSXNrb29sYSBQb3RhIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9Ik1vbmciIHR5cGVmYWNlPSJNb25nb2xpYW4gQmFpdGkiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVmlldCIgdHlwZWZhY2U9IlRpbWVzIE5ldyBSb21hbiIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJVaWdoIiB0eXBlZmFjZT0iTWljcm9zb2Z0IFVpZ2h1ciIvPgogICAgICA8L2E6bWFqb3JGb250PgogICAgICA8YTptaW5vckZvbnQ+CiAgICAgICAgPGE6bGF0aW4gdHlwZWZhY2U9IkNhbGlicmkiLz4KICAgICAgICA8YTplYSB0eXBlZmFjZT0iIi8+CiAgICAgICAgPGE6Y3MgdHlwZWZhY2U9IiIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJKcGFuIiB0eXBlZmFjZT0iJiN4RkYyRDsmI3hGRjMzOyAmI3hGRjMwOyYjeDMwQjQ7JiN4MzBCNzsmI3gzMEMzOyYjeDMwQUY7Ii8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkhhbmciIHR5cGVmYWNlPSImI3hCOUQxOyYjeEM3NDA7ICYjeEFDRTA7JiN4QjUxNTsiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iSGFucyIgdHlwZWZhY2U9IiYjeDVCOEI7JiN4NEY1MzsiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iSGFudCIgdHlwZWZhY2U9IiYjeDY1QjA7JiN4N0QzMDsmI3g2NjBFOyYjeDlBRDQ7Ii8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkFyYWIiIHR5cGVmYWNlPSJBcmlhbCIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJIZWJyIiB0eXBlZmFjZT0iQXJpYWwiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVGhhaSIgdHlwZWZhY2U9IlRhaG9tYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJFdGhpIiB0eXBlZmFjZT0iTnlhbGEiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iQmVuZyIgdHlwZWZhY2U9IlZyaW5kYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJHdWpyIiB0eXBlZmFjZT0iU2hydXRpIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IktobXIiIHR5cGVmYWNlPSJEYXVuUGVuaCIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJLbmRhIiB0eXBlZmFjZT0iVHVuZ2EiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iR3VydSIgdHlwZWZhY2U9IlJhYXZpIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkNhbnMiIHR5cGVmYWNlPSJFdXBoZW1pYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJDaGVyIiB0eXBlZmFjZT0iUGxhbnRhZ2VuZXQgQ2hlcm9rZWUiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iWWlpaSIgdHlwZWZhY2U9Ik1pY3Jvc29mdCBZaSBCYWl0aSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJUaWJ0IiB0eXBlZmFjZT0iTWljcm9zb2Z0IEhpbWFsYXlhIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IlRoYWEiIHR5cGVmYWNlPSJNViBCb2xpIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IkRldmEiIHR5cGVmYWNlPSJNYW5nYWwiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVGVsdSIgdHlwZWZhY2U9IkdhdXRhbWkiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVGFtbCIgdHlwZWZhY2U9IkxhdGhhIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IlN5cmMiIHR5cGVmYWNlPSJFc3RyYW5nZWxvIEVkZXNzYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJPcnlhIiB0eXBlZmFjZT0iS2FsaW5nYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJNbHltIiB0eXBlZmFjZT0iS2FydGlrYSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJMYW9vIiB0eXBlZmFjZT0iRG9rQ2hhbXBhIi8+CiAgICAgICAgPGE6Zm9udCBzY3JpcHQ9IlNpbmgiIHR5cGVmYWNlPSJJc2tvb2xhIFBvdGEiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iTW9uZyIgdHlwZWZhY2U9Ik1vbmdvbGlhbiBCYWl0aSIvPgogICAgICAgIDxhOmZvbnQgc2NyaXB0PSJWaWV0IiB0eXBlZmFjZT0iQXJpYWwiLz4KICAgICAgICA8YTpmb250IHNjcmlwdD0iVWlnaCIgdHlwZWZhY2U9Ik1pY3Jvc29mdCBVaWdodXIiLz4KICAgICAgPC9hOm1pbm9yRm9udD4KICAgIDwvYTpmb250U2NoZW1lPgogICAgPGE6Zm10U2NoZW1lIG5hbWU9Ik9mZmljZSI+CiAgICAgIDxhOmZpbGxTdHlsZUxzdD4KICAgICAgICA8YTpzb2xpZEZpbGw+CiAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciIvPgogICAgICAgIDwvYTpzb2xpZEZpbGw+CiAgICAgICAgPGE6Z3JhZEZpbGwgcm90V2l0aFNoYXBlPSIxIj4KICAgICAgICAgIDxhOmdzTHN0PgogICAgICAgICAgICA8YTpncyBwb3M9IjAiPgogICAgICAgICAgICAgIDxhOnNjaGVtZUNsciB2YWw9InBoQ2xyIj4KICAgICAgICAgICAgICAgIDxhOnRpbnQgdmFsPSI1MDAwMCIvPgogICAgICAgICAgICAgICAgPGE6c2F0TW9kIHZhbD0iMzAwMDAwIi8+CiAgICAgICAgICAgICAgPC9hOnNjaGVtZUNscj4KICAgICAgICAgICAgPC9hOmdzPgogICAgICAgICAgICA8YTpncyBwb3M9IjM1MDAwIj4KICAgICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgICA8YTp0aW50IHZhbD0iMzcwMDAiLz4KICAgICAgICAgICAgICAgIDxhOnNhdE1vZCB2YWw9IjMwMDAwMCIvPgogICAgICAgICAgICAgIDwvYTpzY2hlbWVDbHI+CiAgICAgICAgICAgIDwvYTpncz4KICAgICAgICAgICAgPGE6Z3MgcG9zPSIxMDAwMDAiPgogICAgICAgICAgICAgIDxhOnNjaGVtZUNsciB2YWw9InBoQ2xyIj4KICAgICAgICAgICAgICAgIDxhOnRpbnQgdmFsPSIxNTAwMCIvPgogICAgICAgICAgICAgICAgPGE6c2F0TW9kIHZhbD0iMzUwMDAwIi8+CiAgICAgICAgICAgICAgPC9hOnNjaGVtZUNscj4KICAgICAgICAgICAgPC9hOmdzPgogICAgICAgICAgPC9hOmdzTHN0PgogICAgICAgICAgPGE6bGluIGFuZz0iMTYyMDAwMDAiIHNjYWxlZD0iMSIvPgogICAgICAgIDwvYTpncmFkRmlsbD4KICAgICAgICA8YTpncmFkRmlsbCByb3RXaXRoU2hhcGU9IjEiPgogICAgICAgICAgPGE6Z3NMc3Q+CiAgICAgICAgICAgIDxhOmdzIHBvcz0iMCI+CiAgICAgICAgICAgICAgPGE6c2NoZW1lQ2xyIHZhbD0icGhDbHIiPgogICAgICAgICAgICAgICAgPGE6c2hhZGUgdmFsPSI1MTAwMCIvPgogICAgICAgICAgICAgICAgPGE6c2F0TW9kIHZhbD0iMTMwMDAwIi8+CiAgICAgICAgICAgICAgPC9hOnNjaGVtZUNscj4KICAgICAgICAgICAgPC9hOmdzPgogICAgICAgICAgICA8YTpncyBwb3M9IjgwMDAwIj4KICAgICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgICA8YTpzaGFkZSB2YWw9IjkzMDAwIi8+CiAgICAgICAgICAgICAgICA8YTpzYXRNb2QgdmFsPSIxMzAwMDAiLz4KICAgICAgICAgICAgICA8L2E6c2NoZW1lQ2xyPgogICAgICAgICAgICA8L2E6Z3M+CiAgICAgICAgICAgIDxhOmdzIHBvcz0iMTAwMDAwIj4KICAgICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgICA8YTpzaGFkZSB2YWw9Ijk0MDAwIi8+CiAgICAgICAgICAgICAgICA8YTpzYXRNb2QgdmFsPSIxMzUwMDAiLz4KICAgICAgICAgICAgICA8L2E6c2NoZW1lQ2xyPgogICAgICAgICAgICA8L2E6Z3M+CiAgICAgICAgICA8L2E6Z3NMc3Q+CiAgICAgICAgICA8YTpsaW4gYW5nPSIxNjIwMDAwMCIgc2NhbGVkPSIwIi8+CiAgICAgICAgPC9hOmdyYWRGaWxsPgogICAgICA8L2E6ZmlsbFN0eWxlTHN0PgogICAgICA8YTpsblN0eWxlTHN0PgogICAgICAgIDxhOmxuIHc9Ijk1MjUiIGNhcD0iZmxhdCIgY21wZD0ic25nIiBhbGduPSJjdHIiPgogICAgICAgICAgPGE6c29saWRGaWxsPgogICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgPGE6c2hhZGUgdmFsPSI5NTAwMCIvPgogICAgICAgICAgICAgIDxhOnNhdE1vZCB2YWw9IjEwNTAwMCIvPgogICAgICAgICAgICA8L2E6c2NoZW1lQ2xyPgogICAgICAgICAgPC9hOnNvbGlkRmlsbD4KICAgICAgICAgIDxhOnByc3REYXNoIHZhbD0ic29saWQiLz4KICAgICAgICA8L2E6bG4+CiAgICAgICAgPGE6bG4gdz0iMjU0MDAiIGNhcD0iZmxhdCIgY21wZD0ic25nIiBhbGduPSJjdHIiPgogICAgICAgICAgPGE6c29saWRGaWxsPgogICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciIvPgogICAgICAgICAgPC9hOnNvbGlkRmlsbD4KICAgICAgICAgIDxhOnByc3REYXNoIHZhbD0ic29saWQiLz4KICAgICAgICA8L2E6bG4+CiAgICAgICAgPGE6bG4gdz0iMzgxMDAiIGNhcD0iZmxhdCIgY21wZD0ic25nIiBhbGduPSJjdHIiPgogICAgICAgICAgPGE6c29saWRGaWxsPgogICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciIvPgogICAgICAgICAgPC9hOnNvbGlkRmlsbD4KICAgICAgICAgIDxhOnByc3REYXNoIHZhbD0ic29saWQiLz4KICAgICAgICA8L2E6bG4+CiAgICAgIDwvYTpsblN0eWxlTHN0PgogICAgICA8YTplZmZlY3RTdHlsZUxzdD4KICAgICAgICA8YTplZmZlY3RTdHlsZT4KICAgICAgICAgIDxhOmVmZmVjdExzdD4KICAgICAgICAgICAgPGE6b3V0ZXJTaGR3IGJsdXJSYWQ9IjQwMDAwIiBkaXN0PSIyMDAwMCIgZGlyPSI1NDAwMDAwIiByb3RXaXRoU2hhcGU9IjAiPgogICAgICAgICAgICAgIDxhOnNyZ2JDbHIgdmFsPSIwMDAwMDAiPgogICAgICAgICAgICAgICAgPGE6YWxwaGEgdmFsPSIzODAwMCIvPgogICAgICAgICAgICAgIDwvYTpzcmdiQ2xyPgogICAgICAgICAgICA8L2E6b3V0ZXJTaGR3PgogICAgICAgICAgPC9hOmVmZmVjdExzdD4KICAgICAgICA8L2E6ZWZmZWN0U3R5bGU+CiAgICAgICAgPGE6ZWZmZWN0U3R5bGU+CiAgICAgICAgICA8YTplZmZlY3RMc3Q+CiAgICAgICAgICAgIDxhOm91dGVyU2hkdyBibHVyUmFkPSI0MDAwMCIgZGlzdD0iMjMwMDAiIGRpcj0iNTQwMDAwMCIgcm90V2l0aFNoYXBlPSIwIj4KICAgICAgICAgICAgICA8YTpzcmdiQ2xyIHZhbD0iMDAwMDAwIj4KICAgICAgICAgICAgICAgIDxhOmFscGhhIHZhbD0iMzUwMDAiLz4KICAgICAgICAgICAgICA8L2E6c3JnYkNscj4KICAgICAgICAgICAgPC9hOm91dGVyU2hkdz4KICAgICAgICAgIDwvYTplZmZlY3RMc3Q+CiAgICAgICAgPC9hOmVmZmVjdFN0eWxlPgogICAgICAgIDxhOmVmZmVjdFN0eWxlPgogICAgICAgICAgPGE6ZWZmZWN0THN0PgogICAgICAgICAgICA8YTpvdXRlclNoZHcgYmx1clJhZD0iNDAwMDAiIGRpc3Q9IjIzMDAwIiBkaXI9IjU0MDAwMDAiIHJvdFdpdGhTaGFwZT0iMCI+CiAgICAgICAgICAgICAgPGE6c3JnYkNsciB2YWw9IjAwMDAwMCI+CiAgICAgICAgICAgICAgICA8YTphbHBoYSB2YWw9IjM1MDAwIi8+CiAgICAgICAgICAgICAgPC9hOnNyZ2JDbHI+CiAgICAgICAgICAgIDwvYTpvdXRlclNoZHc+CiAgICAgICAgICA8L2E6ZWZmZWN0THN0PgogICAgICAgICAgPGE6c2NlbmUzZD4KICAgICAgICAgICAgPGE6Y2FtZXJhIHByc3Q9Im9ydGhvZ3JhcGhpY0Zyb250Ij4KICAgICAgICAgICAgICA8YTpyb3QgbGF0PSIwIiBsb249IjAiIHJldj0iMCIvPgogICAgICAgICAgICA8L2E6Y2FtZXJhPgogICAgICAgICAgICA8YTpsaWdodFJpZyByaWc9InRocmVlUHQiIGRpcj0idCI+CiAgICAgICAgICAgICAgPGE6cm90IGxhdD0iMCIgbG9uPSIwIiByZXY9IjEyMDAwMDAiLz4KICAgICAgICAgICAgPC9hOmxpZ2h0UmlnPgogICAgICAgICAgPC9hOnNjZW5lM2Q+CiAgICAgICAgICA8YTpzcDNkPgogICAgICAgICAgICA8YTpiZXZlbFQgdz0iNjM1MDAiIGg9IjI1NDAwIi8+CiAgICAgICAgICA8L2E6c3AzZD4KICAgICAgICA8L2E6ZWZmZWN0U3R5bGU+CiAgICAgIDwvYTplZmZlY3RTdHlsZUxzdD4KICAgICAgPGE6YmdGaWxsU3R5bGVMc3Q+CiAgICAgICAgPGE6c29saWRGaWxsPgogICAgICAgICAgPGE6c2NoZW1lQ2xyIHZhbD0icGhDbHIiLz4KICAgICAgICA8L2E6c29saWRGaWxsPgogICAgICAgIDxhOmdyYWRGaWxsIHJvdFdpdGhTaGFwZT0iMSI+CiAgICAgICAgICA8YTpnc0xzdD4KICAgICAgICAgICAgPGE6Z3MgcG9zPSIwIj4KICAgICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgICA8YTp0aW50IHZhbD0iNDAwMDAiLz4KICAgICAgICAgICAgICAgIDxhOnNhdE1vZCB2YWw9IjM1MDAwMCIvPgogICAgICAgICAgICAgIDwvYTpzY2hlbWVDbHI+CiAgICAgICAgICAgIDwvYTpncz4KICAgICAgICAgICAgPGE6Z3MgcG9zPSI0MDAwMCI+CiAgICAgICAgICAgICAgPGE6c2NoZW1lQ2xyIHZhbD0icGhDbHIiPgogICAgICAgICAgICAgICAgPGE6dGludCB2YWw9IjQ1MDAwIi8+CiAgICAgICAgICAgICAgICA8YTpzaGFkZSB2YWw9Ijk5MDAwIi8+CiAgICAgICAgICAgICAgICA8YTpzYXRNb2QgdmFsPSIzNTAwMDAiLz4KICAgICAgICAgICAgICA8L2E6c2NoZW1lQ2xyPgogICAgICAgICAgICA8L2E6Z3M+CiAgICAgICAgICAgIDxhOmdzIHBvcz0iMTAwMDAwIj4KICAgICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgICA8YTpzaGFkZSB2YWw9IjIwMDAwIi8+CiAgICAgICAgICAgICAgICA8YTpzYXRNb2QgdmFsPSIyNTUwMDAiLz4KICAgICAgICAgICAgICA8L2E6c2NoZW1lQ2xyPgogICAgICAgICAgICA8L2E6Z3M+CiAgICAgICAgICA8L2E6Z3NMc3Q+CiAgICAgICAgICA8YTpwYXRoIHBhdGg9ImNpcmNsZSI+CiAgICAgICAgICAgIDxhOmZpbGxUb1JlY3QgbD0iNTAwMDAiIHQ9Ii04MDAwMCIgcj0iNTAwMDAiIGI9IjE4MDAwMCIvPgogICAgICAgICAgPC9hOnBhdGg+CiAgICAgICAgPC9hOmdyYWRGaWxsPgogICAgICAgIDxhOmdyYWRGaWxsIHJvdFdpdGhTaGFwZT0iMSI+CiAgICAgICAgICA8YTpnc0xzdD4KICAgICAgICAgICAgPGE6Z3MgcG9zPSIwIj4KICAgICAgICAgICAgICA8YTpzY2hlbWVDbHIgdmFsPSJwaENsciI+CiAgICAgICAgICAgICAgICA8YTp0aW50IHZhbD0iODAwMDAiLz4KICAgICAgICAgICAgICAgIDxhOnNhdE1vZCB2YWw9IjMwMDAwMCIvPgogICAgICAgICAgICAgIDwvYTpzY2hlbWVDbHI+CiAgICAgICAgICAgIDwvYTpncz4KICAgICAgICAgICAgPGE6Z3MgcG9zPSIxMDAwMDAiPgogICAgICAgICAgICAgIDxhOnNjaGVtZUNsciB2YWw9InBoQ2xyIj4KICAgICAgICAgICAgICAgIDxhOnNoYWRlIHZhbD0iMzAwMDAiLz4KICAgICAgICAgICAgICAgIDxhOnNhdE1vZCB2YWw9IjIwMDAwMCIvPgogICAgICAgICAgICAgIDwvYTpzY2hlbWVDbHI+CiAgICAgICAgICAgIDwvYTpncz4KICAgICAgICAgIDwvYTpnc0xzdD4KICAgICAgICAgIDxhOnBhdGggcGF0aD0iY2lyY2xlIj4KICAgICAgICAgICAgPGE6ZmlsbFRvUmVjdCBsPSI1MDAwMCIgdD0iNTAwMDAiIHI9IjUwMDAwIiBiPSI1MDAwMCIvPgogICAgICAgICAgPC9hOnBhdGg+CiAgICAgICAgPC9hOmdyYWRGaWxsPgogICAgICA8L2E6YmdGaWxsU3R5bGVMc3Q+CiAgICA8L2E6Zm10U2NoZW1lPgogIDwvYTp0aGVtZUVsZW1lbnRzPgogIDxhOm9iamVjdERlZmF1bHRzLz4KICA8YTpleHRyYUNsclNjaGVtZUxzdC8+CjwvYTp0aGVtZT4K",
+  "xl/styles.xml": "PHN0eWxlU2hlZXQgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9zcHJlYWRzaGVldG1sLzIwMDYvbWFpbiI+PG51bUZtdHMgY291bnQ9IjAiLz48Zm9udHMgY291bnQ9IjMiPjxmb250PjxuYW1lIHZhbD0iQ2FsaWJyaSIvPjxmYW1pbHkgdmFsPSIyIi8+PGNvbG9yIHRoZW1lPSIxIi8+PHN6IHZhbD0iMTEiLz48c2NoZW1lIHZhbD0ibWlub3IiLz48L2ZvbnQ+PGZvbnQ+PG5hbWUgdmFsPSJNaWNyb3NvZnQgSmhlbmdIZWkiLz48YiB2YWw9IjEiLz48c3ogdmFsPSIxMSIvPjwvZm9udD48Zm9udD48bmFtZSB2YWw9Ik1pY3Jvc29mdCBKaGVuZ0hlaSIvPjxzeiB2YWw9IjEwIi8+PC9mb250PjwvZm9udHM+PGZpbGxzIGNvdW50PSIzIj48ZmlsbD48cGF0dGVybkZpbGwvPjwvZmlsbD48ZmlsbD48cGF0dGVybkZpbGwgcGF0dGVyblR5cGU9ImdyYXkxMjUiLz48L2ZpbGw+PGZpbGw+PHBhdHRlcm5GaWxsIHBhdHRlcm5UeXBlPSJzb2xpZCI+PGZnQ29sb3IgcmdiPSIwMEYyRjRGNyIvPjxiZ0NvbG9yIHJnYj0iMDBGMkY0RjciLz48L3BhdHRlcm5GaWxsPjwvZmlsbD48L2ZpbGxzPjxib3JkZXJzIGNvdW50PSIyIj48Ym9yZGVyPjxsZWZ0Lz48cmlnaHQvPjx0b3AvPjxib3R0b20vPjxkaWFnb25hbC8+PC9ib3JkZXI+PGJvcmRlcj48bGVmdCBzdHlsZT0idGhpbiI+PGNvbG9yIHJnYj0iMDBENEQ0RDQiLz48L2xlZnQ+PHJpZ2h0IHN0eWxlPSJ0aGluIj48Y29sb3IgcmdiPSIwMEQ0RDRENCIvPjwvcmlnaHQ+PHRvcCBzdHlsZT0idGhpbiI+PGNvbG9yIHJnYj0iMDBENEQ0RDQiLz48L3RvcD48Ym90dG9tIHN0eWxlPSJ0aGluIj48Y29sb3IgcmdiPSIwMEQ0RDRENCIvPjwvYm90dG9tPjwvYm9yZGVyPjwvYm9yZGVycz48Y2VsbFN0eWxlWGZzIGNvdW50PSIxIj48eGYgbnVtRm10SWQ9IjAiIGZvbnRJZD0iMCIgZmlsbElkPSIwIiBib3JkZXJJZD0iMCIvPjwvY2VsbFN0eWxlWGZzPjxjZWxsWGZzIGNvdW50PSIzIj48eGYgbnVtRm10SWQ9IjAiIGZvbnRJZD0iMCIgZmlsbElkPSIwIiBib3JkZXJJZD0iMCIgcGl2b3RCdXR0b249IjAiIHF1b3RlUHJlZml4PSIwIiB4ZklkPSIwIi8+PHhmIG51bUZtdElkPSIwIiBmb250SWQ9IjEiIGZpbGxJZD0iMiIgYm9yZGVySWQ9IjEiIGFwcGx5QWxpZ25tZW50PSIxIiBwaXZvdEJ1dHRvbj0iMCIgcXVvdGVQcmVmaXg9IjAiIHhmSWQ9IjAiPjxhbGlnbm1lbnQgaG9yaXpvbnRhbD0iY2VudGVyIiB2ZXJ0aWNhbD0iY2VudGVyIi8+PC94Zj48eGYgbnVtRm10SWQ9IjAiIGZvbnRJZD0iMiIgZmlsbElkPSIwIiBib3JkZXJJZD0iMSIgYXBwbHlBbGlnbm1lbnQ9IjEiIHBpdm90QnV0dG9uPSIwIiBxdW90ZVByZWZpeD0iMCIgeGZJZD0iMCI+PGFsaWdubWVudCBob3Jpem9udGFsPSJjZW50ZXIiIHZlcnRpY2FsPSJjZW50ZXIiLz48L3hmPjwvY2VsbFhmcz48Y2VsbFN0eWxlcyBjb3VudD0iMSI+PGNlbGxTdHlsZSBuYW1lPSJOb3JtYWwiIHhmSWQ9IjAiIGJ1aWx0aW5JZD0iMCIgaGlkZGVuPSIwIi8+PC9jZWxsU3R5bGVzPjx0YWJsZVN0eWxlcyBjb3VudD0iMCIgZGVmYXVsdFRhYmxlU3R5bGU9IlRhYmxlU3R5bGVNZWRpdW05IiBkZWZhdWx0UGl2b3RTdHlsZT0iUGl2b3RTdHlsZUxpZ2h0MTYiLz48Y29sb3JzPjxpbmRleGVkQ29sb3JzPjxyZ2JDb2xvciByZ2I9IjAwMDAwMDAwIi8+PHJnYkNvbG9yIHJnYj0iMDBGRkZGRkYiLz48cmdiQ29sb3IgcmdiPSIwMEZGMDAwMCIvPjxyZ2JDb2xvciByZ2I9IjAwMDBGRjAwIi8+PHJnYkNvbG9yIHJnYj0iMDAwMDAwRkYiLz48cmdiQ29sb3IgcmdiPSIwMEZGRkYwMCIvPjxyZ2JDb2xvciByZ2I9IjAwRkYwMEZGIi8+PHJnYkNvbG9yIHJnYj0iMDAwMEZGRkYiLz48cmdiQ29sb3IgcmdiPSIwMDAwMDAwMCIvPjxyZ2JDb2xvciByZ2I9IjAwRkZGRkZGIi8+PHJnYkNvbG9yIHJnYj0iMDBGRjAwMDAiLz48cmdiQ29sb3IgcmdiPSIwMDAwRkYwMCIvPjxyZ2JDb2xvciByZ2I9IjAwMDAwMEZGIi8+PHJnYkNvbG9yIHJnYj0iMDBGRkZGMDAiLz48cmdiQ29sb3IgcmdiPSIwMEZGMDBGRiIvPjxyZ2JDb2xvciByZ2I9IjAwMDBGRkZGIi8+PHJnYkNvbG9yIHJnYj0iMDA4MDAwMDAiLz48cmdiQ29sb3IgcmdiPSIwMDAwODAwMCIvPjxyZ2JDb2xvciByZ2I9IjAwMDAwMDgwIi8+PHJnYkNvbG9yIHJnYj0iMDA4MDgwMDAiLz48cmdiQ29sb3IgcmdiPSIwMDgwMDA4MCIvPjxyZ2JDb2xvciByZ2I9IjAwMDA4MDgwIi8+PHJnYkNvbG9yIHJnYj0iMDBDMEMwQzAiLz48cmdiQ29sb3IgcmdiPSIwMDgwODA4MCIvPjxyZ2JDb2xvciByZ2I9IjAwOTk5OUZGIi8+PHJnYkNvbG9yIHJnYj0iMDA5OTMzNjYiLz48cmdiQ29sb3IgcmdiPSIwMEZGRkZDQyIvPjxyZ2JDb2xvciByZ2I9IjAwQ0NGRkZGIi8+PHJnYkNvbG9yIHJnYj0iMDA2NjAwNjYiLz48cmdiQ29sb3IgcmdiPSIwMEZGODA4MCIvPjxyZ2JDb2xvciByZ2I9IjAwMDA2NkNDIi8+PHJnYkNvbG9yIHJnYj0iMDBDQ0NDRkYiLz48cmdiQ29sb3IgcmdiPSIwMDAwMDA4MCIvPjxyZ2JDb2xvciByZ2I9IjAwRkYwMEZGIi8+PHJnYkNvbG9yIHJnYj0iMDBGRkZGMDAiLz48cmdiQ29sb3IgcmdiPSIwMDAwRkZGRiIvPjxyZ2JDb2xvciByZ2I9IjAwODAwMDgwIi8+PHJnYkNvbG9yIHJnYj0iMDA4MDAwMDAiLz48cmdiQ29sb3IgcmdiPSIwMDAwODA4MCIvPjxyZ2JDb2xvciByZ2I9IjAwMDAwMEZGIi8+PHJnYkNvbG9yIHJnYj0iMDAwMENDRkYiLz48cmdiQ29sb3IgcmdiPSIwMENDRkZGRiIvPjxyZ2JDb2xvciByZ2I9IjAwQ0NGRkNDIi8+PHJnYkNvbG9yIHJnYj0iMDBGRkZGOTkiLz48cmdiQ29sb3IgcmdiPSIwMDk5Q0NGRiIvPjxyZ2JDb2xvciByZ2I9IjAwRkY5OUNDIi8+PHJnYkNvbG9yIHJnYj0iMDBDQzk5RkYiLz48cmdiQ29sb3IgcmdiPSIwMEZGQ0M5OSIvPjxyZ2JDb2xvciByZ2I9IjAwMzM2NkZGIi8+PHJnYkNvbG9yIHJnYj0iMDAzM0NDQ0MiLz48cmdiQ29sb3IgcmdiPSIwMDk5Q0MwMCIvPjxyZ2JDb2xvciByZ2I9IjAwRkZDQzAwIi8+PHJnYkNvbG9yIHJnYj0iMDBGRjk5MDAiLz48cmdiQ29sb3IgcmdiPSIwMEZGNjYwMCIvPjxyZ2JDb2xvciByZ2I9IjAwNjY2Njk5Ii8+PHJnYkNvbG9yIHJnYj0iMDA5Njk2OTYiLz48cmdiQ29sb3IgcmdiPSIwMDAwMzM2NiIvPjxyZ2JDb2xvciByZ2I9IjAwMzM5OTY2Ii8+PHJnYkNvbG9yIHJnYj0iMDAwMDMzMDAiLz48cmdiQ29sb3IgcmdiPSIwMDMzMzMwMCIvPjxyZ2JDb2xvciByZ2I9IjAwOTkzMzAwIi8+PHJnYkNvbG9yIHJnYj0iMDA5OTMzNjYiLz48cmdiQ29sb3IgcmdiPSIwMDMzMzM5OSIvPjxyZ2JDb2xvciByZ2I9IjAwMzMzMzMzIi8+PC9pbmRleGVkQ29sb3JzPjwvY29sb3JzPjwvc3R5bGVTaGVldD4=",
+  "_rels/.rels": "PFJlbGF0aW9uc2hpcHMgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9wYWNrYWdlLzIwMDYvcmVsYXRpb25zaGlwcyI+PFJlbGF0aW9uc2hpcCBUeXBlPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzL29mZmljZURvY3VtZW50IiBUYXJnZXQ9InhsL3dvcmtib29rLnhtbCIgSWQ9InJJZDEiLz48UmVsYXRpb25zaGlwIFR5cGU9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9wYWNrYWdlLzIwMDYvcmVsYXRpb25zaGlwcy9tZXRhZGF0YS9jb3JlLXByb3BlcnRpZXMiIFRhcmdldD0iZG9jUHJvcHMvY29yZS54bWwiIElkPSJySWQyIi8+PFJlbGF0aW9uc2hpcCBUeXBlPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzL2V4dGVuZGVkLXByb3BlcnRpZXMiIFRhcmdldD0iZG9jUHJvcHMvYXBwLnhtbCIgSWQ9InJJZDMiLz48L1JlbGF0aW9uc2hpcHM+",
+  "xl/workbook.xml": "PHdvcmtib29rIHhtbG5zPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvc3ByZWFkc2hlZXRtbC8yMDA2L21haW4iPjx3b3JrYm9va1ByLz48d29ya2Jvb2tQcm90ZWN0aW9uLz48Ym9va1ZpZXdzPjx3b3JrYm9va1ZpZXcgdmlzaWJpbGl0eT0idmlzaWJsZSIgbWluaW1pemVkPSIwIiBzaG93SG9yaXpvbnRhbFNjcm9sbD0iMSIgc2hvd1ZlcnRpY2FsU2Nyb2xsPSIxIiBzaG93U2hlZXRUYWJzPSIxIiB0YWJSYXRpbz0iNjAwIiBmaXJzdFNoZWV0PSIwIiBhY3RpdmVUYWI9IjAiIGF1dG9GaWx0ZXJEYXRlR3JvdXBpbmc9IjEiLz48L2Jvb2tWaWV3cz48c2hlZXRzPjxzaGVldCB4bWxuczpyPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzIiBuYW1lPSLli5Xlk6HntIDpjIQiIHNoZWV0SWQ9IjEiIHN0YXRlPSJ2aXNpYmxlIiByOmlkPSJySWQxIi8+PC9zaGVldHM+PGRlZmluZWROYW1lcy8+PGNhbGNQciBjYWxjSWQ9IjEyNDUxOSIgZnVsbENhbGNPbkxvYWQ9IjEiLz48L3dvcmtib29rPg==",
+  "xl/_rels/workbook.xml.rels": "PFJlbGF0aW9uc2hpcHMgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9wYWNrYWdlLzIwMDYvcmVsYXRpb25zaGlwcyI+PFJlbGF0aW9uc2hpcCBUeXBlPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzL3dvcmtzaGVldCIgVGFyZ2V0PSIveGwvd29ya3NoZWV0cy9zaGVldDEueG1sIiBJZD0icklkMSIvPjxSZWxhdGlvbnNoaXAgVHlwZT0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL29mZmljZURvY3VtZW50LzIwMDYvcmVsYXRpb25zaGlwcy9zdHlsZXMiIFRhcmdldD0ic3R5bGVzLnhtbCIgSWQ9InJJZDIiLz48UmVsYXRpb25zaGlwIFR5cGU9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9vZmZpY2VEb2N1bWVudC8yMDA2L3JlbGF0aW9uc2hpcHMvdGhlbWUiIFRhcmdldD0idGhlbWUvdGhlbWUxLnhtbCIgSWQ9InJJZDMiLz48L1JlbGF0aW9uc2hpcHM+",
+  "[Content_Types].xml": "PFR5cGVzIHhtbG5zPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvcGFja2FnZS8yMDA2L2NvbnRlbnQtdHlwZXMiPjxEZWZhdWx0IEV4dGVuc2lvbj0icmVscyIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1wYWNrYWdlLnJlbGF0aW9uc2hpcHMreG1sIi8+PERlZmF1bHQgRXh0ZW5zaW9uPSJ4bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi94bWwiLz48T3ZlcnJpZGUgUGFydE5hbWU9Ii94bC9zdHlsZXMueG1sIiBDb250ZW50VHlwZT0iYXBwbGljYXRpb24vdm5kLm9wZW54bWxmb3JtYXRzLW9mZmljZWRvY3VtZW50LnNwcmVhZHNoZWV0bWwuc3R5bGVzK3htbCIvPjxPdmVycmlkZSBQYXJ0TmFtZT0iL3hsL3RoZW1lL3RoZW1lMS54bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQudGhlbWUreG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIvZG9jUHJvcHMvY29yZS54bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtcGFja2FnZS5jb3JlLXByb3BlcnRpZXMreG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIvZG9jUHJvcHMvYXBwLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5leHRlbmRlZC1wcm9wZXJ0aWVzK3htbCIvPjxPdmVycmlkZSBQYXJ0TmFtZT0iL3hsL3dvcmtzaGVldHMvc2hlZXQxLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLndvcmtzaGVldCt4bWwiLz48T3ZlcnJpZGUgUGFydE5hbWU9Ii94bC93b3JrYm9vay54bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldC5tYWluK3htbCIvPjwvVHlwZXM+"
+};
+
+const ZIP_CRC_TABLE = new Uint32Array(256);
+for (let n = 0; n < 256; n++) {
+  let c = n;
+  for (let k = 0; k < 8; k++) {
+    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+  }
+  ZIP_CRC_TABLE[n] = c;
+}
+
+function calcZipCrc32(bytes) {
+  let crc = 0 ^ (-1);
+  for (let i = 0; i < bytes.length; i++) {
+    crc = (crc >>> 8) ^ ZIP_CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+  }
+  return (crc ^ (-1)) >>> 0;
+}
+
+function createZipUint8Array(files) {
+  const encoder = new TextEncoder();
+  const fileEntries = [];
+  let totalSize = 0;
+
+  for (const f of files) {
+    const nameBytes = encoder.encode(f.name);
+    let dataBytes;
+    if (f.data instanceof Uint8Array) {
+      dataBytes = f.data;
+    } else if (typeof f.data === 'string') {
+      dataBytes = encoder.encode(f.data);
+    } else {
+      dataBytes = new Uint8Array(f.data);
+    }
+    const crc = calcZipCrc32(dataBytes);
+
+    fileEntries.push({
+      nameBytes,
+      dataBytes,
+      crc,
+      nameLen: nameBytes.length,
+      dataLen: dataBytes.length
+    });
+
+    totalSize += 30 + nameBytes.length + dataBytes.length; // Local file
+    totalSize += 46 + nameBytes.length;                   // Central directory
+  }
+  totalSize += 22; // EOCD
+
+  const out = new Uint8Array(totalSize);
+  const view = new DataView(out.buffer);
+  let pos = 0;
+
+  // 1. Local headers & data
+  for (const entry of fileEntries) {
+    entry.offset = pos;
+
+    view.setUint32(pos, 0x04034b50, true);
+    view.setUint16(pos + 4, 20, true);
+    view.setUint16(pos + 6, 0x0800, true); // UTF-8
+    view.setUint16(pos + 8, 0, true);      // Stored (0)
+    view.setUint16(pos + 10, 0, true);
+    view.setUint16(pos + 12, 0x5000, true);
+    view.setUint32(pos + 14, entry.crc, true);
+    view.setUint32(pos + 18, entry.dataLen, true);
+    view.setUint32(pos + 22, entry.dataLen, true);
+    view.setUint16(pos + 26, entry.nameLen, true);
+    view.setUint16(pos + 28, 0, true);
+    pos += 30;
+
+    out.set(entry.nameBytes, pos);
+    pos += entry.nameLen;
+
+    out.set(entry.dataBytes, pos);
+    pos += entry.dataLen;
+  }
+
+  // 2. Central Directory
+  const cdOffset = pos;
+  for (const entry of fileEntries) {
+    view.setUint32(pos, 0x02014b50, true);
+    view.setUint16(pos + 4, 20, true);
+    view.setUint16(pos + 6, 20, true);
+    view.setUint16(pos + 8, 0x0800, true);
+    view.setUint16(pos + 10, 0, true);
+    view.setUint16(pos + 12, 0, true);
+    view.setUint16(pos + 14, 0x5000, true);
+    view.setUint32(pos + 16, entry.crc, true);
+    view.setUint32(pos + 20, entry.dataLen, true);
+    view.setUint32(pos + 24, entry.dataLen, true);
+    view.setUint16(pos + 28, entry.nameLen, true);
+    view.setUint16(pos + 30, 0, true);
+    view.setUint16(pos + 32, 0, true);
+    view.setUint16(pos + 34, 0, true);
+    view.setUint16(pos + 36, 0, true);
+    view.setUint32(pos + 38, 0, true);
+    view.setUint32(pos + 42, entry.offset, true);
+    pos += 46;
+
+    out.set(entry.nameBytes, pos);
+    pos += entry.nameLen;
+  }
+  const cdSize = pos - cdOffset;
+
+  // 3. EOCD
+  view.setUint32(pos, 0x06054b50, true);
+  view.setUint16(pos + 4, 0, true);
+  view.setUint16(pos + 6, 0, true);
+  view.setUint16(pos + 8, fileEntries.length, true);
+  view.setUint16(pos + 10, fileEntries.length, true);
+  view.setUint32(pos + 12, cdSize, true);
+  view.setUint32(pos + 16, cdOffset, true);
+  view.setUint16(pos + 20, 0, true);
+
+  return out;
+}
+
+function base64ToUint8Array(b64) {
+  const binaryStr = atob(b64);
+  const len = binaryStr.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function buildXlsxBinaryBlob(rows) {
+  const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
+  const S_MAIN = atob('aHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3NwcmVhZHNoZWV0bWwvMjAwNi9tYWlu');
+
+  const maxRow = rows.length;
+  const numCols = rows[0] ? rows[0].length : 8;
+
+  let colWidths = new Array(numCols).fill(8);
+  rows.forEach(r => {
+    r.forEach((val, cIdx) => {
+      if (cIdx < numCols && val !== null && val !== undefined) {
+        let str = String(val);
+        let len = 0;
+        for (let i = 0; i < str.length; i++) {
+          let code = str.charCodeAt(i);
+          if (code > 255) {
+            len += 2.1;
+          } else {
+            len += 1.15;
+          }
+        }
+        if (len > colWidths[cIdx]) {
+          colWidths[cIdx] = len;
+        }
+      }
+    });
+  });
+
+  let sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n';
+  sheetXml += '<worksheet xmlns="' + S_MAIN + '">\r\n';
+  sheetXml += '  <sheetPr><outlinePr summaryBelow="1" summaryRight="1"/><pageSetUpPr/></sheetPr>\r\n';
+  sheetXml += `  <dimension ref="A1:H${maxRow}"/>\r\n`;
+  
+  // 第一列 (Row 1) 與 第一欄 (Column A) 設定凍結窗格 (Freeze Panes)
+  sheetXml += '  <sheetViews>\r\n';
+  sheetXml += '    <sheetView workbookViewId="0">\r\n';
+  sheetXml += '      <pane xSplit="1" ySplit="1" topLeftCell="B2" activePane="bottomRight" state="frozen"/>\r\n';
+  sheetXml += '      <selection pane="bottomRight" activeCell="B2" sqref="B2"/>\r\n';
+  sheetXml += '    </sheetView>\r\n';
+  sheetXml += '  </sheetViews>\r\n';
+
+  sheetXml += '  <sheetFormatPr defaultRowHeight="19" baseColWidth="10"/>\r\n';
+  
+  // 動態寫入最適欄寬 (+2px 寬度緩衝)
+  sheetXml += '  <cols>\r\n';
+  colWidths.forEach((w, cIdx) => {
+    let colNum = cIdx + 1;
+    let finalW = Math.max(Math.ceil(w + 3.2), 10);
+    sheetXml += `    <col min="${colNum}" max="${colNum}" width="${finalW}" customWidth="1"/>\r\n`;
+  });
+  sheetXml += '  </cols>\r\n';
+
+  sheetXml += '  <sheetData>\r\n';
+
+  rows.forEach((row, rIdx) => {
+    const rowNum = rIdx + 1;
+    sheetXml += `    <row r="${rowNum}">\r\n`;
+    row.forEach((val, cIdx) => {
+      const colLet = colLetters[cIdx] || 'A';
+      const cellRef = `${colLet}${rowNum}`;
+      const styleId = (rowNum === 1) ? 1 : 2;
+
+      if (val === '' || val === null || val === undefined) {
+        sheetXml += `      <c r="${cellRef}" s="${styleId}" t="inlineStr"><is><t></t></is></c>\r\n`;
+      } else if (typeof val === 'number') {
+        sheetXml += `      <c r="${cellRef}" s="${styleId}" t="n"><v>${val}</v></c>\r\n`;
+      } else {
+        const safeStr = String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        sheetXml += `      <c r="${cellRef}" s="${styleId}" t="inlineStr"><is><t>${safeStr}</t></is></c>\r\n`;
+      }
+    });
+    sheetXml += '    </row>\r\n';
+  });
+
+  sheetXml += '  </sheetData>\r\n';
+  sheetXml += '</worksheet>';
+
+  const files = [];
+  for (const [name, b64] of Object.entries(STATIC_OPENXML_FILES)) {
+    files.push({ name, data: base64ToUint8Array(b64) });
+  }
+  files.push({ name: 'xl/worksheets/sheet1.xml', data: sheetXml });
+
+  return createZipUint8Array(files);
+}
+
+// 2-c. 下載動員紀錄 (.xlsx)：依 G0 至 G17 車站順序產出，內建凍結窗格與最適欄寬
+function downloadMobilizationLogsXlsx() {
+  let headers = ['序號', '動作時間', '動作類型', '動員車站', '目的地方向', '移動方式', '目的地車站', '備註 / 更新時間'];
+  let rows = [headers];
+
+  let globalIdx = 1;
+  LOG_SORT_ORDER.forEach(st => {
+    let stEvents = rawMobilizationEvents.filter(e => e.station === st);
+    if (stEvents.length > 0) {
+      stEvents.forEach(evt => {
+        let destText = evt.destination || '-';
+        let remarkText = '-';
+        if (evt.updateTime) {
+          remarkText = `${evt.updateTime} 手動更新目的地`;
+        }
+
+        let row = [
+          globalIdx,
+          evt.time,
+          evt.action,
+          evt.station,
+          evt.direction || '-',
+          evt.method || '-',
+          destText,
+          remarkText
+        ];
+        rows.push(row);
+        globalIdx++;
+      });
+    }
+  });
+
+  try {
+    const zipBytes = buildXlsxBinaryBlob(rows);
+    const blob = new Blob([zipBytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    let nowStr = getFormattedTimestamp();
+    let timeFileStr = nowStr.replace(/[\/\s:]/g, '');
+
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = "台中捷運綠線_動員紀錄_" + timeFileStr + ".xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+
+    if (rawMobilizationEvents.length === 0) {
+      alert("已匯出 Excel 表頭範本 (.xlsx)！提示：點選車站動員後即可帶入時間戳記紀錄。");
+    }
+  } catch (err) {
+    console.error("XLSX 下載失敗:", err);
+    alert("下載 XLSX 時發生錯誤：" + err.message);
+  }
+}
+
+
+// 判斷某站是否處於動員中
+function isStationCurrentlyMobilized(stFullName) {
+  if (manualMobilized.has(stFullName)) return true;
+  for (let id of PANEL_IDS) {
+    if (panelActiveCard[id] === stFullName) return true;
+  }
+  return false;
+}
+
+// 區塊一：點選車站按鈕切換動員
+
+// 全線車站批次動員 / 解除動員
+function mobilizeAllStations() {
+  let ts = getFormattedTimestamp();
+  STATIONS_LIST.forEach((st, idx) => {
+    if (!isStationCurrentlyMobilized(st.fullName)) {
+      manualMobilized.add(st.fullName);
+      let defaultDir = (idx === 17) ? "下行" : "上行";
+      logDetailedMobilizationAction(st.fullName, true, defaultDir, "待定", "目的地待定");
+    }
+  });
+  updateAllPanelsAndBar();
+}
+
+function demobilizeAllStations() {
+  let ts = getFormattedTimestamp();
+  STATIONS_LIST.forEach(st => {
+    if (isStationCurrentlyMobilized(st.fullName)) {
+      manualMobilized.delete(st.fullName);
+      PANEL_IDS.forEach(id => {
+        if (panelActiveCard[id] === st.fullName) {
+          panelActiveCard[id] = null;
+          panelCompletedCards[id][st.fullName] = true;
+        }
+      });
+      logDetailedMobilizationAction(st.fullName, false, "-", "-", "-");
+    }
+  });
+  updateAllPanelsAndBar();
+}
+
+function toggleManualMobilization(stFullName) {
+  let isCurrentlyActive = isStationCurrentlyMobilized(stFullName);
+
+  if (isCurrentlyActive) {
+    manualMobilized.delete(stFullName);
+
+    PANEL_IDS.forEach(id => {
+      if (panelActiveCard[id] === stFullName) {
+        panelActiveCard[id] = null;
+        panelCompletedCards[id][stFullName] = true;
+      }
+    });
+
+    logDetailedMobilizationAction(stFullName, false);
+    updateAllPanelsAndBar();
+  } else {
+    // 區塊一手動點選 -> 開啟彈窗 (預設 上行 / 目的地待定 / 搭乘列車)
+    openMobSetupModal(stFullName, null, null);
+  }
+}
+
+function handleCardClick(panelId, stFullName) {
+  if (panelCompletedCards[panelId][stFullName]) {
+    return;
+  }
+
+  let currentActive = panelActiveCard[panelId];
+
+  if (currentActive === stFullName) {
+    panelActiveCard[panelId] = null;
+    logDetailedMobilizationAction(stFullName, false);
+    updateAllPanelsAndBar();
+  } else {
+    if (currentActive) {
+      logDetailedMobilizationAction(currentActive, false);
+      panelActiveCard[panelId] = null;
+    }
+
+    // 查詢面板 Top3 卡片點選 -> 帶入即時運算快取之待命位置狀態 (自動帶入預設方向/目的地/軌道步行)
+    let res = lastComputedPanelResults[panelId];
+    let cardData = (res && res.results) ? res.results.find(c => c.name === stFullName) : null;
+    let standbyStatus = cardData ? cardData.standby : null;
+
+    openMobSetupModal(stFullName, panelId, standbyStatus);
+  }
+}
+
+function resetPanelSd(panelId) {
+  document.getElementById(`sdInput-${panelId}`).value = "";
+  if (panelActiveCard[panelId]) {
+    logMobilizationAction(panelActiveCard[panelId], false);
+    panelActiveCard[panelId] = null;
+  }
+  panelCompletedCards[panelId] = {};
+  hideDropdown(panelId);
+  updateAllPanelsAndBar();
+}
+
+// 一鍵重置所有查詢 SD：清空三組輸入框代碼並重置卡片
+function resetAllSdInputs() {
+  PANEL_IDS.forEach(id => {
+    document.getElementById(`sdInput-${id}`).value = "";
+    if (panelActiveCard[id]) {
+      logMobilizationAction(panelActiveCard[id], false);
+      panelActiveCard[id] = null;
+    }
+    panelCompletedCards[id] = {};
+    hideDropdown(id);
+  });
+  updateAllPanelsAndBar();
+}
+
+// 4-d & 3. 重置全部狀態與紀錄：
+// 獨立層級：絕對不清空輸入代碼！僅清空動員紀錄，區塊一與簡圖全部恢復未動員，卡片恢復預設待命
+function resetAllMobilization() {
+  manualMobilized.clear();
+  PANEL_IDS.forEach(id => {
+    // 保留 sdInput 目前輸入的 SD 代碼！
+    panelActiveCard[id] = null; // 卡片恢復為預設待命狀態
+    panelCompletedCards[id] = {};
+    hideDropdown(id);
+  });
+  rawMobilizationEvents = [];
+  updateAllPanelsAndBar();
+}
+
+
+// 動員紀錄選單渲染 (由上至下固定依 G0 至 G17 車站地理順序排列，各站內依時間排序)
+function renderMobilizationLogs() {
+  let logBox = document.getElementById('logBox');
+  if (!logBox) return;
+
+  if (rawMobilizationEvents.length === 0) {
+    logBox.innerHTML = '<div class="log-empty">尚無動員紀錄</div>';
+    return;
+  }
+
+  let html = '';
+  LOG_SORT_ORDER.forEach(st => {
+    let stEvents = rawMobilizationEvents.filter(e => e.station === st);
+    if (stEvents.length > 0) {
+      stEvents.forEach(evt => {
+        if (evt.action === "動員") {
+          let destHtml = (evt.destination === "目的地待定" || evt.isPendingDest)
+            ? `<strong style="color: #d97706;">目的地待定</strong>`
+            : `<strong>${evt.destination}</strong>`;
+
+          let methodHtml = (evt.method === "待定")
+            ? `<strong style="color: #d97706;">待定</strong>`
+            : `<strong>${evt.method}</strong>`;
+
+          if (evt.updateTime) {
+            destHtml += ` <span style="color: #059669; font-size: 11.5px; font-weight: bold;">(${evt.updateTime} 更新)</span>`;
+          }
+
+          let btnHtml = `<button type="button" class="btn-sm-update" onclick="openUpdateDestModal('${evt.id}')">✏️ 更新動員資訊</button>`;
+
+          html += `
+            <div class="log-item" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="log-tag log-tag-mob">動員</span>
+                <strong>${evt.station}</strong>
+                <span style="color: #64748b; font-size: 12.5px; margin-left: 4px;">[${evt.time}]</span>
+                <span style="margin-left: 8px; font-size: 13px;">
+                  方向：<strong>${evt.direction}</strong> | 
+                  移動方式：${methodHtml} | 
+                  目的地：${destHtml}
+                </span>
+              </div>
+              ${btnHtml}
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="log-item" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span class="log-tag log-tag-unmob">解除</span>
+                <strong>${evt.station}</strong>
+                <span style="color: #64748b; font-size: 12.5px; margin-left: 4px;">[${evt.time}]</span>
+                <span style="margin-left: 8px; font-size: 13px; color: #64748b;">已解除動員狀態</span>
+              </div>
+            </div>
+          `;
+        }
+      });
+    }
+  });
+
+  logBox.innerHTML = html || '<div class="log-empty">尚無動員紀錄</div>';
+}
+
+// 2-a. 下拉式選單：黑底灰字 + 嚴格由左至右開頭篩選 (startsWith)
+function showDropdown(panelId, query) {
+  let dropdown = document.getElementById(`sdDropdown-${panelId}`);
+  if (!dropdown) return;
+
+  let cleanQuery = query.trim().toLowerCase();
+  let matches = [];
+
+  if (!cleanQuery) {
+    matches = SD_DATABASE;
+  } else {
+    // 嚴格比對開頭 startsWith，維持 DN 由小至大、接續 UP 由小至大的順序
+    matches = SD_DATABASE.filter(s => s.sd.toLowerCase().startsWith(cleanQuery));
+  }
+
+  if (matches.length === 0) {
+    dropdown.innerHTML = '<div style="padding: 12px; color: #8b949e; font-size: 13px; text-align: center;">查無開頭相符之 SD 代碼</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  let html = '';
+  matches.forEach((item, idx) => {
+    let activeClass = idx === 0 ? 'sd-dropdown-item-active' : '';
+    html += `
+      <div class="sd-dropdown-item ${activeClass}" onmousedown="selectSdFromDropdown(${panelId}, '${item.sd}')">
+        <div class="sd-code-text">${item.sd}</div>
+        <div class="sd-meta-text">(${item.direction}) Middle: ${item.middle.toFixed(2)}</div>
+      </div>
+    `;
+  });
+
+  dropdown.innerHTML = html;
+  dropdown.style.display = 'block';
+}
+
+function hideDropdown(panelId) {
+  let dropdown = document.getElementById(`sdDropdown-${panelId}`);
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function selectSdFromDropdown(panelId, sdCode) {
+  let input = document.getElementById(`sdInput-${panelId}`);
+  input.value = sdCode;
+  hideDropdown(panelId);
+  panelActiveCard[panelId] = null;
+  panelCompletedCards[panelId] = {};
+  updateAllPanelsAndBar();
+}
+
+function findMatchingSd(sdCode) {
+  let cleanCode = sdCode.trim().toLowerCase();
+  if (!cleanCode) return null;
+  let exactMatch = SD_DATABASE.find(s => s.sd.toLowerCase() === cleanCode);
+  if (exactMatch) return exactMatch;
+  let prefixMatch = SD_DATABASE.find(s => s.sd.toLowerCase().startsWith(cleanCode));
+  if (prefixMatch) return prefixMatch;
+  return null;
+}
+
+function calculateChainageFromSd(panelId) {
+  let sdCode = document.getElementById(`sdInput-${panelId}`).value;
+  let isCross = document.getElementById(`toggleCross-${panelId}`).checked;
+  let isRev = document.getElementById(`toggleRev-${panelId}`).checked;
+
+  document.getElementById(`labelCrossLeft-${panelId}`).className = isCross ? 'switch-label-left' : 'switch-label-left switch-label-active';
+  document.getElementById(`labelCrossRight-${panelId}`).className = isCross ? 'switch-label-right switch-label-active' : 'switch-label-right';
+  document.getElementById(`labelRevLeft-${panelId}`).className = isRev ? 'switch-label-left' : 'switch-label-left switch-label-active';
+  document.getElementById(`labelRevRight-${panelId}`).className = isRev ? 'switch-label-right switch-label-active' : 'switch-label-right';
+
+  let inputSd = findMatchingSd(sdCode);
+  if (!inputSd) return null;
+
+  let dir = inputSd.direction;
+  let effectiveTrackDir = dir;
+  let km = 0;
+
+  if (!isRev) {
+    if (!isCross) {
+      km = inputSd.middle;
+    } else {
+      km = dir === "UP" ? inputSd.lower_bound : inputSd.upper_bound;
+    }
+  } else {
+    if (dir === "UP") {
+      km = inputSd.upper_bound;
+    } else {
+      km = inputSd.lower_bound;
+    }
+  }
+  return { chainage: km, trackDir: effectiveTrackDir };
+}
+
+// 全線坡度積分演算法 (依據 坡度.pdf 真實分段坡度數據)
+function calculateAscentAndSlopeType(startKm, endKm, direction) {
+  if (Math.abs(startKm - endKm) < 1e-6) {
+    return { ascent: 0.0, slopeType: "平地", netDz: 0.0 };
+  }
+
+  let dirSlopes = SLOPE_DATABASE.filter(s => s.dir === direction);
+  let minKm = Math.min(startKm, endKm);
+  let maxKm = Math.max(startKm, endKm);
+  let isIncreasing = (endKm >= startKm);
+
+  let totalAscent = 0.0;
+  let netDz = 0.0;
+
+  for (let s of dirSlopes) {
+    let overlapA = Math.max(s.lower, minKm);
+    let overlapB = Math.min(s.upper, maxKm);
+
+    if (overlapA < overlapB) {
+      let length = overlapB - overlapA;
+      let dx = isIncreasing ? length : -length;
+      let dz = dx * (s.grade / 100.0);
+      netDz += dz;
+      if (dz > 0) {
+        totalAscent += dz;
+      }
+    }
+  }
+
+  let slopeType = "平地";
+  if (netDz > 0.05) {
+    slopeType = "上坡";
+  } else if (netDz < -0.05) {
+    slopeType = "下坡";
+  }
+
+  return { ascent: totalAscent, slopeType: slopeType, netDz: netDz };
+}
+
+function getStandbyStatus(st, pKm) {
+  if (pKm >= st.lower && pKm <= st.upper) {
+    return "月台軌區就近待命";
+  } else if (pKm < st.center) {
+    return "南端待命";
+  } else {
+    return "北端待命";
+  }
+}
+
+function getPhysicalDistance(st, pKm, status) {
+  if (status === "月台軌區就近待命") {
+    return 0.0;
+  } else if (status === "南端待命") {
+    return Math.abs(st.lower - pKm);
+  } else {
+    return Math.abs(pKm - st.upper);
+  }
+}
+
+function computePanelResults(panelId, excludedStations) {
+  let calcResult = calculateChainageFromSd(panelId);
+  if (!calcResult) return { hasData: false, targetKm: null, trackDir: null, results: [] };
+
+  let targetKm = calcResult.chainage;
+  let trackDir = calcResult.trackDir;
+
+  let fullBounds = STATIONS_LIST.map(st => {
+    let trackData = trackDir === "UP" ? st.up : st.dn;
+    return {
+      name: st.fullName,
+      code: st.code,
+      displayName: st.displayName,
+      lower: trackData.lower,
+      upper: trackData.upper,
+      center: trackData.center,
+      elev: trackData.elev
+    };
+  });
+
+  let candidateBounds = fullBounds.filter(st => !excludedStations.has(st.name));
+
+  let results = candidateBounds.map(st => {
+    let standby = getStandbyStatus(st, targetKm);
+    let physDist = getPhysicalDistance(st, targetKm, standby);
+
+    // 確定待命起點里程 (若是月台軌區待命則起點為 targetKm)
+    let startKm = targetKm;
+    if (standby === "南端待命") {
+      startKm = st.lower;
+    } else if (standby === "北端待命") {
+      startKm = st.upper;
+    }
+
+    // 呼叫真實坡度分段積分計算
+    let slopeRes = calculateAscentAndSlopeType(startKm, targetKm, trackDir);
+    let ascent = slopeRes.ascent;
+    let slopeType = slopeRes.slopeType;
+    let equivDist = physDist + 8.33 * ascent;
+
+    return { 
+      name: st.name, 
+      code: st.code, 
+      displayName: st.displayName, 
+      lower: st.lower, 
+      upper: st.upper, 
+      center: st.center, 
+      physDist, 
+      ascent, 
+      equivDist, 
+      slopeType, 
+      standby 
+    };
+  });
+
+  results.sort((a, b) => a.equivDist - b.equivDist);
+  return { hasData: true, targetKm, trackDir, results };
+}
+
+function renderPanel(panelId, panelData) {
+  let estKmElem = document.getElementById(`estimatedKm-${panelId}`);
+  let topCardsElem = document.getElementById(`topCards-${panelId}`);
+  let tbodyElem = document.getElementById(`stBody-${panelId}`);
+
+  if (!panelData.hasData) {
+    estKmElem.innerText = "－ m";
+    topCardsElem.innerHTML = `
+      <div class="card card-no3"><div class="card-rank">🏆 最佳車站</div><div class="card-st">－</div><div class="card-dist-box"><span class="card-dist-num">－</span><span class="card-dist-unit">分</span></div><div class="card-detail">－ m</div><div class="card-status status-standby">待命</div></div>
+      <div class="card card-no3"><div class="card-rank">🥈 次佳車站</div><div class="card-st">－</div><div class="card-dist-box"><span class="card-dist-num">－</span><span class="card-dist-unit">分</span></div><div class="card-detail">－ m</div><div class="card-status status-standby">待命</div></div>
+      <div class="card card-no3"><div class="card-rank">🥉 第三車站</div><div class="card-st">－</div><div class="card-dist-box"><span class="card-dist-num">－</span><span class="card-dist-unit">分</span></div><div class="card-detail">－ m</div><div class="card-status status-standby">待命</div></div>
+    `;
+    tbodyElem.innerHTML = '<tr><td colspan="7" style="color: #94a3b8; padding: 15px;">請於上方輸入 SD 代碼進行查詢</td></tr>';
+    return;
+  }
+
+  estKmElem.innerText = `${panelData.targetKm.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} m (${panelData.trackDir})`;
+  
+  if (panelData.results.length === 0) {
+    topCardsElem.innerHTML = `
+      <div class="card card-no3" style="grid-column: 1 / -1; text-align: center;"><div class="card-rank">⚠️ 無可用車站</div><div class="card-st" style="font-size: 16px;">全線所有車站皆已動員</div><div class="card-detail">請於動員紀錄或車站狀態列解除動員後重試</div></div>
+    `;
+    tbodyElem.innerHTML = '<tr><td colspan="7" style="color: #ef4444; padding: 15px; font-weight: bold;">⚠️ 全線所有車站皆已處於動員狀態，尚無可用待命車站</td></tr>';
+    return;
+  }
+
+  topCardsElem.innerHTML = '';
+
+  // 渲染 TOP 3 卡片
+  panelData.results.slice(0, 3).forEach((r, idx) => {
+    let cardClass = idx === 0 ? 'card-no1' : (idx === 1 ? 'card-no2' : 'card-no3');
+    let rankLabel = idx === 0 ? '🏆 最佳車站' : (idx === 1 ? '🥈 次佳車站' : '🥉 第三車站');
+    
+    let isCompleted = !!panelCompletedCards[panelId][r.name];
+    let isMobilized = (panelActiveCard[panelId] === r.name);
+
+    let statusClass = "status-standby";
+    if (r.standby === "月台軌區就近待命") {
+      statusClass = "status-platform";
+    } else if (r.standby === "南端待命") {
+      statusClass = "status-south";
+    } else if (r.standby === "北端待命") {
+      statusClass = "status-north";
+    }
+
+    let statusText = r.standby;
+    let clickClass = "card-clickable";
+
+    if (isCompleted) {
+      statusClass = "status-completed";
+      statusText = "完成動員";
+      clickClass = "card-locked";
+    } else if (isMobilized) {
+      statusClass = "status-mobilized";
+      statusText = "已動員 (點擊解除)";
+    }
+
+    let slopeColor = getSlopeColor(r.slopeType);
+    let walkingTimeStr = formatWalkingTime(r.equivDist);
+
+    topCardsElem.innerHTML += `
+      <div class="card ${cardClass} ${clickClass}" onclick="handleCardClick(${panelId}, '${r.name}')" title="${isCompleted ? '已完成動員 (鎖定)' : '點選切換 ' + r.name + ' 動員狀態'}">
+        <div class="card-rank">${rankLabel}</div>
+        <div class="card-st">${r.name}</div>
+        <div class="card-dist-box">
+          <span class="card-dist-num">${walkingTimeStr}</span><span class="card-dist-unit">分</span>
+        </div>
+        <div class="card-detail">${r.physDist.toFixed(1)} m (<span style="color: ${slopeColor}; font-weight: bold;">${r.slopeType}</span>)</div>
+        <div class="card-status ${statusClass}">${statusText}</div>
+      </div>
+    `;
+  });
+
+  // 渲染表格前 5 名
+  tbodyElem.innerHTML = '';
+  panelData.results.slice(0, 5).forEach((r, idx) => {
+    let isTop1 = idx === 0;
+    let badgeClass = r.standby === "月台軌區就近待命" ? "badge-platform" : (r.standby === "南端待命" ? "badge-south" : "badge-north");
+    let ascentText = r.ascent > 0 ? ` (+${r.ascent.toFixed(2)}m)` : '';
+    let slopeColor = getSlopeColor(r.slopeType);
+    let walkingTimeStr = formatWalkingTime(r.equivDist);
+
+    let standbyDisplay = r.standby === "月台軌區就近待命" ? "月台軌區<br>就近待命" : r.standby;
+
+    tbodyElem.innerHTML += `
+      <tr class="${isTop1 ? 'highlight-row' : ''}">
+        <td class="col-rank">${idx + 1}</td>
+        <td class="col-station">
+          <div style="font-weight: 800; font-size: 13px; color: var(--navy); line-height: 1.2;">${r.code}</div>
+          <div style="font-size: 11px; font-weight: bold; color: #475569; line-height: 1.2;">${r.displayName}</div>
+        </td>
+        <td class="col-standby"><span class="badge-standby ${badgeClass}">${standbyDisplay}</span></td>
+        <td class="col-center">${Math.round(r.center).toLocaleString('en-US')}</td>
+        <td class="col-time" style="color: #d9534f; font-weight: 800; font-size: 13px;">${walkingTimeStr}分</td>
+        <td class="col-dist" style="font-weight: bold;">${r.physDist.toFixed(2)}</td>
+        <td class="col-slope" style="font-weight: bold; color: ${slopeColor};">${r.slopeType}${ascentText}</td>
+      </tr>
+    `;
+  });
+}
+
+// 3-a. 車站配置簡圖：
+// 中心點 A = (車站圓圈上方邊界 + 車站名稱下方邊界) / 2
+// 由中心點 A 上下各延伸 36px 作為 DN / UP道位置定位
+// 3-a. 車站配置簡圖：
+// 電腦端 (>768px)：單行 18 站橫向滿版圖 (與 v11 100% 完全相同)
+// 手機端 (<768px)：參考 手機版面預期最終呈現效果.jpg 垂直分成 3 段 (每段 6 站)，比例精確對齊
+function renderTrackSchematic(p1, p2, p3, allMobilizedSet, bestSet) {
+  let wrapper = document.getElementById('trackSchematicWrapper');
+  if (!wrapper) return;
+
+  let isMobile = (window.innerWidth < 768);
+
+  if (!isMobile) {
+    // === 電腦端 (> 768px)：單行 18 站橫向滿版圖 (與 v11 100% 完全相同) ===
+    const totalStations = STATIONS_LIST.length; // 18 站 (G17 至 G0)
+    const svgWidth = 1520;
+    const svgHeight = 205;
+
+    const startX = 120;
+    const endX = 1400;
+    const stepX = (endX - startX) / (totalStations - 1);
+
+    const trackStartX = 40;
+    const trackEndX = 1480;
+
+    const yStation = 90;
+    const rStation = 16;
+    const yTopCircle = yStation - rStation; // 74px
+    const yStationName = 118;
+    const yBottomName = 122;
+    const centerA = (yTopCircle + yBottomName) / 2; // 98px
+    const yDN = centerA - 42; // 56px
+    const yUP = centerA + 42; // 140px
+
+    let stationCoords = {};
+    STATIONS_LIST.forEach((st, idx) => {
+      stationCoords[st.code] = {
+        x: startX + idx * stepX,
+        fullName: st.fullName,
+        code: st.code,
+        displayName: st.displayName,
+        center: st.dn.center,
+        idx: idx
+      };
+    });
+
+    function getXFromChainage(targetKm) {
+      let firstSt = STATIONS_LIST[0];
+      let secondSt = STATIONS_LIST[1];
+      let lastSt = STATIONS_LIST[totalStations - 1];
+      let prevLastSt = STATIONS_LIST[totalStations - 2];
+
+      if (targetKm < firstSt.dn.center) {
+        let pxPerM = (stationCoords[secondSt.code].x - stationCoords[firstSt.code].x) / (secondSt.dn.center - firstSt.dn.center);
+        let x = stationCoords[firstSt.code].x + (targetKm - firstSt.dn.center) * pxPerM;
+        return Math.max(trackStartX + 5, x);
+      }
+
+      if (targetKm > lastSt.dn.center) {
+        let pxPerM = (stationCoords[lastSt.code].x - stationCoords[prevLastSt.code].x) / (lastSt.dn.center - prevLastSt.dn.center);
+        let x = stationCoords[lastSt.code].x + (targetKm - lastSt.dn.center) * pxPerM;
+        return Math.min(trackEndX - 5, x);
+      }
+
+      for (let i = 0; i < totalStations - 1; i++) {
+        let stA = STATIONS_LIST[i];
+        let stB = STATIONS_LIST[i+1];
+        let kmA = stA.dn.center;
+        let kmB = stB.dn.center;
+        if (targetKm >= kmA && targetKm <= kmB) {
+          let ratio = (targetKm - kmA) / (kmB - kmA);
+          let xA = stationCoords[stA.code].x;
+          let xB = stationCoords[stB.code].x;
+          return xA + ratio * (xB - xA);
+        }
+      }
+      return stationCoords[firstSt.code].x;
+    }
+
+    let svg = `<svg width="100%" height="205" viewBox="0 0 ${svgWidth} ${svgHeight}" style="display:block; overflow:visible;" xmlns="http://www.w3.org/2000/svg">`;
+
+    // 1. DN道線與箭頭 (一體成形，無空隙)
+    svg += `
+      <line x1="${trackStartX}" y1="${yDN}" x2="${trackEndX}" y2="${yDN}" stroke="#1e3a5f" stroke-width="4.5" stroke-linecap="round"/>
+      <text x="${trackStartX}" y="${yDN - 18}" font-size="10.5pt" font-weight="900" fill="#1e3a5f" text-anchor="middle">DN</text>
+      <polygon points="${trackStartX - 18},${yDN} ${trackStartX + 2},${yDN - 7} ${trackStartX + 2},${yDN + 7}" fill="#1e3a5f" />
+    `;
+
+    // 2. UP道線與箭頭 (一體成形，無空隙)
+    svg += `
+      <line x1="${trackStartX}" y1="${yUP}" x2="${trackEndX}" y2="${yUP}" stroke="#1e3a5f" stroke-width="4.5" stroke-linecap="round"/>
+      <polygon points="${trackEndX + 18},${yUP} ${trackEndX - 2},${yUP - 7} ${trackEndX - 2},${yUP + 7}" fill="#1e3a5f" />
+      <text x="${trackEndX}" y="${yUP + 24}" font-size="10.5pt" font-weight="900" fill="#1e3a5f" text-anchor="middle">UP</text>
+    `;
+
+    // 3. 車站節點
+    STATIONS_LIST.forEach(st => {
+      let pos = stationCoords[st.code];
+      let isMobilized = allMobilizedSet.has(st.fullName);
+      let isBest = bestSet.has(st.fullName);
+
+      let circleFill = "#f1f5f9";
+      let circleStroke = "#cbd5e1";
+      let textColor = "#475569";
+      let codeColor = "#475569";
+
+      if (isMobilized) {
+        circleFill = "#dcfce7";
+        circleStroke = "#166534";
+        textColor = "#14532d";
+        codeColor = "#14532d";
+      } else if (isBest) {
+        circleFill = "#fff2cc";
+        circleStroke = "#e67e22";
+        textColor = "#b45309";
+        codeColor = "#b45309";
+      }
+
+      svg += `
+        <!-- 上段虛線 -->
+        <line x1="${pos.x}" y1="${yDN}" x2="${pos.x}" y2="${yTopCircle}" stroke="#475569" stroke-width="2" stroke-dasharray="3,3"/>
+        
+        <!-- 下段虛線 -->
+        <line x1="${pos.x}" y1="${yBottomName}" x2="${pos.x}" y2="${yUP}" stroke="#475569" stroke-width="2" stroke-dasharray="3,3"/>
+        
+        <!-- 車站節點圖示 -->
+        <g class="schematic-station-node">
+          <circle cx="${pos.x}" cy="${yStation}" r="${rStation}" fill="${circleFill}" stroke="${circleStroke}" stroke-width="${isMobilized || isBest ? '2.5' : '1.5'}"/>
+          <text x="${pos.x}" y="${yStation + 4.5}" font-size="8.5pt" font-weight="800" fill="${codeColor}" text-anchor="middle">${st.code}</text>
+          <text x="${pos.x}" y="${yStationName}" font-size="9pt" font-weight="bold" fill="${textColor}" text-anchor="middle">${st.displayName}</text>
+        </g>
+      `;
+    });
+
+    // 📍₁ / 📍₂ / 📍₃ 里程標記
+    const panelsInfo = [
+      { p: p1, num: '1', color: '#2563eb', label: '查詢(一)' },
+      { p: p2, num: '2', color: '#16a34a', label: '查詢(二)' },
+      { p: p3, num: '3', color: '#9333ea', label: '查詢(三)' }
+    ];
+
+    panelsInfo.forEach(info => {
+      if (info.p && info.p.hasData && info.p.targetKm !== null) {
+        let xPin = getXFromChainage(info.p.targetKm);
+        let isDN = (info.p.trackDir === "DN");
+        let yTrack = isDN ? yDN : yUP;
+        
+        let pinBodyY = isDN ? (yTrack - 28) : (yTrack + 8);
+        let pinTipY = yTrack;
+
+        svg += `
+          <!-- ${info.label} 定位標記 -->
+          <g style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+            <title>${info.label} 里程: ${info.p.targetKm.toFixed(2)}m (${info.p.trackDir})</title>
+            <line x1="${xPin}" y1="${isDN ? pinBodyY + 12 : pinBodyY}" x2="${xPin}" y2="${pinTipY}" stroke="${info.color}" stroke-width="3" />
+            <circle cx="${xPin}" cy="${isDN ? pinBodyY : pinBodyY + 12}" r="12" fill="${info.color}" stroke="#ffffff" stroke-width="2"/>
+            <text x="${xPin}" y="${(isDN ? pinBodyY : pinBodyY + 12) + 4}" font-size="9pt" font-weight="900" fill="#ffffff" text-anchor="middle">${info.num}</text>
+          </g>
+        `;
+      }
+    });
+
+    svg += `</svg>`;
+    wrapper.innerHTML = svg;
+
+  } else {
+    // === 手機端 (< 768px)：參考 手機版面預期最終呈現效果.jpg 垂直分成 3 段 (每段 6 站)，比例對齊電腦版 ===
+    const mobileSvgWidth = 900;
+    const rowHeight = 200;
+    const mobileSvgHeight = rowHeight * 3; // 600px
+
+    const groups = [
+      { name: "Segment 1", list: STATIONS_LIST.slice(0, 6) },  // G17 -> G12
+      { name: "Segment 2", list: STATIONS_LIST.slice(6, 12) }, // G11 -> G8
+      { name: "Segment 3", list: STATIONS_LIST.slice(12, 18) } // G7 -> G0
+    ];
+
+    let svg = `<svg width="100%" height="auto" viewBox="0 0 ${mobileSvgWidth} ${mobileSvgHeight}" style="display:block; overflow:visible;" xmlns="http://www.w3.org/2000/svg">`;
+
+    groups.forEach((grp, gIdx) => {
+      let yBase = gIdx * rowHeight;
+      let trackStartX = 70;
+      let trackEndX = 830;
+      let startX = 150;
+      let endX = 750;
+      let stepX = (endX - startX) / 5; // 6 站 5 間距 (120px)
+
+      let yStation = yBase + 95;
+      let rStation = 22;
+      let yTopCircle = yStation - rStation; // yBase + 73
+      let yStationName = yBase + 138;
+      let yBottomName = yBase + 142;
+      let centerA = (yTopCircle + yBottomName) / 2; // yBase + 107.5
+      let yDN = centerA - 48; // yBase + 59.5
+      let yUP = centerA + 48; // yBase + 155.5
+
+      // 1. DN道線與箭頭 (一體成形，對齊電腦版文字距離與比例)
+      svg += `
+        <line x1="${trackStartX}" y1="${yDN}" x2="${trackEndX}" y2="${yDN}" stroke="#1e3a5f" stroke-width="4.5" stroke-linecap="round"/>
+        <text x="${trackStartX}" y="${yDN - 16}" font-size="13pt" font-weight="900" fill="#1e3a5f" text-anchor="middle">DN</text>
+        <polygon points="${trackStartX - 20},${yDN} ${trackStartX + 2},${yDN - 8} ${trackStartX + 2},${yDN + 8}" fill="#1e3a5f" />
+      `;
+
+      // 2. UP道線與箭頭 (一體成形，對齊電腦版文字距離與比例)
+      svg += `
+        <line x1="${trackStartX}" y1="${yUP}" x2="${trackEndX}" y2="${yUP}" stroke="#1e3a5f" stroke-width="4.5" stroke-linecap="round"/>
+        <polygon points="${trackEndX + 20},${yUP} ${trackEndX - 2},${yUP - 8} ${trackEndX - 2},${yUP + 8}" fill="#1e3a5f" />
+        <text x="${trackEndX}" y="${yUP + 24}" font-size="13pt" font-weight="900" fill="#1e3a5f" text-anchor="middle">UP</text>
+      `;
+
+      // 3. 渲染該段 6 座車站
+      grp.list.forEach((st, sIdx) => {
+        let x = startX + sIdx * stepX;
+        let isMobilized = allMobilizedSet.has(st.fullName);
+        let isBest = bestSet.has(st.fullName);
+
+        let circleFill = "#f1f5f9";
+        let circleStroke = "#cbd5e1";
+        let textColor = "#475569";
+        let codeColor = "#475569";
+
+        if (isMobilized) {
+          circleFill = "#dcfce7";
+          circleStroke = "#166534";
+          textColor = "#14532d";
+          codeColor = "#14532d";
+        } else if (isBest) {
+          circleFill = "#fff2cc";
+          circleStroke = "#e67e22";
+          textColor = "#b45309";
+          codeColor = "#b45309";
+        }
+
+        svg += `
+          <line x1="${x}" y1="${yDN}" x2="${x}" y2="${yTopCircle}" stroke="#475569" stroke-width="2" stroke-dasharray="3,3"/>
+          <line x1="${x}" y1="${yBottomName}" x2="${x}" y2="${yUP}" stroke="#475569" stroke-width="2" stroke-dasharray="3,3"/>
+          <g class="schematic-station-node">
+            <circle cx="${x}" cy="${yStation}" r="${rStation}" fill="${circleFill}" stroke="${circleStroke}" stroke-width="${isMobilized || isBest ? '3.5' : '2'}"/>
+            <text x="${x}" y="${yStation + 5}" font-size="11pt" font-weight="800" fill="${codeColor}" text-anchor="middle">${st.code}</text>
+            <text x="${x}" y="${yStationName}" font-size="12pt" font-weight="bold" fill="${textColor}" text-anchor="middle">${st.displayName}</text>
+          </g>
+        `;
+      });
+
+      // 4. 繪製此段範圍內的 📍₁ / 📍₂ / 📍₃ 事故標記
+      const panelsInfo = [
+        { p: p1, num: '1', color: '#2563eb', label: '查詢(一)' },
+        { p: p2, num: '2', color: '#16a34a', label: '查詢(二)' },
+        { p: p3, num: '3', color: '#9333ea', label: '查詢(三)' }
+      ];
+
+      panelsInfo.forEach(info => {
+        if (info.p && info.p.hasData && info.p.targetKm !== null) {
+          let targetKm = info.p.targetKm;
+          let inThisRow = false;
+
+          if (gIdx === 0 && targetKm < 97143.84) {
+            inThisRow = true;
+          } else if (gIdx === 1 && (targetKm >= 97143.84 && targetKm < 102151.67)) {
+            inThisRow = true;
+          } else if (gIdx === 2 && targetKm >= 102151.67) {
+            inThisRow = true;
+          }
+
+          if (inThisRow) {
+            let stList = grp.list;
+            let firstSt = stList[0];
+            let lastSt = stList[stList.length - 1];
+            let xPin = startX;
+
+            if (targetKm <= firstSt.dn.center) {
+              let pxPerM = stepX / (stList[1].dn.center - firstSt.dn.center);
+              xPin = startX + (targetKm - firstSt.dn.center) * pxPerM;
+              xPin = Math.max(trackStartX + 5, xPin);
+            } else if (targetKm >= lastSt.dn.center) {
+              let pxPerM = stepX / (lastSt.dn.center - stList[stList.length - 2].dn.center);
+              xPin = endX + (targetKm - lastSt.dn.center) * pxPerM;
+              xPin = Math.min(trackEndX - 5, xPin);
+            } else {
+              for (let i = 0; i < stList.length - 1; i++) {
+                let stA = stList[i];
+                let stB = stList[i+1];
+                if (targetKm >= stA.dn.center && targetKm <= stB.dn.center) {
+                  let ratio = (targetKm - stA.dn.center) / (stB.dn.center - stA.dn.center);
+                  xPin = (startX + i * stepX) + ratio * stepX;
+                  break;
+                }
+              }
+            }
+
+            let isDN = (info.p.trackDir === "DN");
+            let yTrack = isDN ? yDN : yUP;
+            let pinBodyY = isDN ? (yTrack - 36) : (yTrack + 8);
+            let pinTipY = yTrack;
+
+            svg += `
+              <g style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.35));">
+                <title>${info.label} 里程: ${info.p.targetKm.toFixed(2)}m (${info.p.trackDir})</title>
+                <line x1="${xPin}" y1="${isDN ? pinBodyY + 14 : pinBodyY}" x2="${xPin}" y2="${pinTipY}" stroke="${info.color}" stroke-width="3.5" />
+                <circle cx="${xPin}" cy="${isDN ? pinBodyY : pinBodyY + 14}" r="15" fill="${info.color}" stroke="#ffffff" stroke-width="2.5"/>
+                <text x="${xPin}" y="${(isDN ? pinBodyY : pinBodyY + 14) + 5}" font-size="11pt" font-weight="900" fill="#ffffff" text-anchor="middle">${info.num}</text>
+              </g>
+            `;
+          }
+        }
+      });
+    });
+
+    svg += `</svg>`;
+    wrapper.innerHTML = svg;
+  }
+}
+
+
+// 全域即時同步渲染
+function updateAllPanelsAndBar() {
+  // 依序排除全域已動員車站 (區塊一) 與先前面板已動員車站 (若有)
+  let excl1 = new Set(manualMobilized);
+  let p1 = computePanelResults(1, excl1);
+
+  let excl2 = new Set(manualMobilized);
+  if (panelActiveCard[1]) excl2.add(panelActiveCard[1]);
+  let p2 = computePanelResults(2, excl2);
+
+  let excl3 = new Set(excl2);
+  if (panelActiveCard[2]) excl3.add(panelActiveCard[2]);
+  let p3 = computePanelResults(3, excl3);
+
+  lastComputedPanelResults[1] = p1;
+  lastComputedPanelResults[2] = p2;
+  lastComputedPanelResults[3] = p3;
+
+  renderPanel(1, p1);
+  renderPanel(2, p2);
+  renderPanel(3, p3);
+
+  // 匯總全系統所有「已動員」車站集合 (區塊一 + 三組查詢已動員卡片)
+  let allMobilizedSet = new Set(manualMobilized);
+  PANEL_IDS.forEach(id => {
+    if (panelActiveCard[id]) {
+      allMobilizedSet.add(panelActiveCard[id]);
+    }
+  });
+
+  // 匯總各面板即時最佳建議車站 (金黃框)
+  let bestSet = new Set();
+  [p1, p2, p3].forEach(p => {
+    if (p.hasData && p.results.length > 0) {
+      bestSet.add(p.results[0].name);
+    }
+  });
+
+  // 渲染區塊一車站狀態按鈕列 (11pt / 10pt / 9pt)
+  let gridElem = document.getElementById('stationGrid');
+  gridElem.innerHTML = '';
+  STATIONS_LIST.forEach(st => {
+    let isMobilized = allMobilizedSet.has(st.fullName);
+    let isBest = bestSet.has(st.fullName);
+    let stateClass = "st-unmobilized";
+    let badgeLabel = "未動員";
+    if (isMobilized) {
+      stateClass = "st-mobilized";
+      badgeLabel = "已動員";
+    } else if (isBest) {
+      stateClass = "st-best";
+      badgeLabel = "最佳建議";
+    }
+
+    gridElem.innerHTML += `
+      <div class="station-btn ${stateClass}" onclick="toggleManualMobilization('${st.fullName}')" title="點擊切換動員狀態">
+        <div class="st-code">${st.code}</div>
+        <div class="st-name">${st.displayName}</div>
+        <div class="st-badge">${badgeLabel}</div>
+      </div>
+    `;
+  });
+
+  renderMobilizationLogs();
+  renderTrackSchematic(p1, p2, p3, allMobilizedSet, bestSet);
+}
+
+// 頁面初次載入與事件綁定
+window.addEventListener('DOMContentLoaded', function() {
+  PANEL_IDS.forEach(id => {
+    let sdInput = document.getElementById(`sdInput-${id}`);
+    let toggleCross = document.getElementById(`toggleCross-${id}`);
+    let toggleRev = document.getElementById(`toggleRev-${id}`);
+
+    // 即時輸入監聽 (英數輸入鍵盤優先 + 實時自動轉大寫)
+    ['input', 'keyup', 'paste', 'compositionend'].forEach(evt => {
+      sdInput.addEventListener(evt, function(e) {
+        // 自動即時轉換英文字母為大寫 (方便直覺輸入英數字代碼)
+        if (sdInput.value) {
+          sdInput.value = sdInput.value.toUpperCase();
+        }
+
+        // 若按下 Enter 鍵，自動選取下拉選單第一筆
+        if (e.key === 'Enter') {
+          let cleanVal = sdInput.value.trim().toLowerCase();
+          let match = SD_DATABASE.find(s => s.sd.toLowerCase().startsWith(cleanVal));
+          if (match) {
+            selectSdFromDropdown(id, match.sd);
+            return;
+          }
+        }
+        showDropdown(id, sdInput.value);
+        panelActiveCard[id] = null;
+        panelCompletedCards[id] = {};
+        updateAllPanelsAndBar();
+      });
+    });
+
+    sdInput.addEventListener('focus', function() {
+      showDropdown(id, sdInput.value);
+    });
+
+    sdInput.addEventListener('blur', function() {
+      setTimeout(() => { hideDropdown(id); }, 220);
+    });
+
+    toggleCross.addEventListener('change', function() {
+      panelActiveCard[id] = null;
+      panelCompletedCards[id] = {};
+      updateAllPanelsAndBar();
+    });
+
+    toggleRev.addEventListener('change', function() {
+      panelActiveCard[id] = null;
+      panelCompletedCards[id] = {};
+      updateAllPanelsAndBar();
+    });
+  });
+
+  // 開啟網頁立即渲染所有區塊！
+  updateAllPanelsAndBar();
+});
+</script>
+
+  <!-- 動員設定 Modal -->
+  <div id="mobSetupModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="mobModalTitle">🚉 車站動員設定</div>
+        <button type="button" class="modal-close-btn" onclick="closeMobSetupModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- A. 目的地方向 -->
+        <div class="form-group">
+          <label class="form-label"><span>🧭</span> 1. 目的地方向：</label>
+          <div class="direction-grid">
+            <button type="button" id="dirUpBtn" class="dir-btn" onclick="setMobDirection('上行')">⬆️ 上行 (往 G0 北屯)</button>
+            <button type="button" id="dirDownBtn" class="dir-btn" onclick="setMobDirection('下行')">⬇️ 下行 (往 G17 高鐵)</button>
+          </div>
+        </div>
+        <!-- A-2 / A-3 目的地車站 -->
+        <div class="form-group">
+          <label class="form-label"><span>🎯</span> 2. 目的地車站：</label>
+          <select id="destStationSelect" class="form-control"></select>
+        </div>
+        <!-- B. 移動方式 -->
+        <div class="form-group">
+          <label class="form-label"><span>🚶</span> 3. 移動方式：</label>
+          <select id="mobMethodSelect" class="form-control" onchange="onMobMethodChange()">
+            <option value="搭乘列車">🚆 搭乘列車</option>
+            <option value="軌道步行">🚶 軌道步行</option>
+            <option value="站外移動">🚗 站外移動</option>
+            <option value="待定">⏳ 待定</option>
+          </select>
+        </div>
+        <!-- B-1 車組選項 (搭乘列車時顯示) -->
+        <div class="form-group" id="trainSetGroup">
+          <label class="form-label"><span>🔢</span> 車組編號：</label>
+          <select id="trainSetSelect" class="form-control"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" onclick="closeMobSetupModal()">取消</button>
+        <button type="button" class="btn-modal-confirm" onclick="confirmMobSetup()">確定動員</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手動更新動員資訊 Modal -->
+  <div id="updateDestModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="updateDestModalTitle">✏️ 手動更新動員資訊</div>
+        <button type="button" class="modal-close-btn" onclick="closeUpdateDestModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- 1. 目的地方向 -->
+        <div class="form-group">
+          <label class="form-label"><span>🧭</span> 1. 目的地方向：</label>
+          <div class="direction-grid">
+            <button type="button" id="updateDirUpBtn" class="dir-btn" onclick="setUpdateMobDirection('上行')">⬆️ 上行 (往 G0 北屯)</button>
+            <button type="button" id="updateDirDownBtn" class="dir-btn" onclick="setUpdateMobDirection('下行')">⬇️ 下行 (往 G17 高鐵)</button>
+          </div>
+        </div>
+        <!-- 2. 目的地車站 -->
+        <div class="form-group">
+          <label class="form-label"><span>🎯</span> 2. 目的地車站：</label>
+          <select id="updateDestSelect" class="form-control"></select>
+        </div>
+        <!-- 3. 移動方式 -->
+        <div class="form-group">
+          <label class="form-label"><span>🚶</span> 3. 移動方式：</label>
+          <select id="updateMethodSelect" class="form-control" onchange="onUpdateMethodChange()">
+            <option value="搭乘列車">🚆 搭乘列車</option>
+            <option value="軌道步行">🚶 軌道步行</option>
+            <option value="站外移動">🚗 站外移動</option>
+            <option value="待定">⏳ 待定</option>
+          </select>
+        </div>
+        <!-- 4. 車組編號 (搭乘列車時顯示) -->
+        <div class="form-group" id="updateTrainGroup">
+          <label class="form-label"><span>🔢</span> 車組編號：</label>
+          <select id="updateTrainSelect" class="form-control"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" onclick="closeUpdateDestModal()">取消</button>
+        <button type="button" class="btn-modal-confirm" onclick="confirmUpdateDest()">確認更新</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
